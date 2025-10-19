@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "C29epVb35+5gWglO3eApq7EYb0UwQ5bPP15Q5v/SHeBs4gq6klh7zfGB5su5Fp9HBAgIxwcgNw2aVmvkqXFtSg==",
+  "dgSpecHash": "5OV3d5btrXiTJnUoJXWHO60oh38VongVL5D8ClF9Hle/iph3gTYUJVPQh69UaDGI76Dd/BUCqOd7WzEj55tMVQ==",
   "success": true,
   "projectFilePath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Infrastructure/TimeSeriesForecaster.Infrastructure.csproj",
   "expectedPackageFiles": [
@@ -26,10 +26,15 @@
     "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.logging.abstractions/7.0.0/microsoft.extensions.logging.abstractions.7.0.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.options/7.0.1/microsoft.extensions.options.7.0.1.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.primitives/7.0.0/microsoft.extensions.primitives.7.0.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.abstractions/7.0.2/microsoft.identitymodel.abstractions.7.0.2.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.jsonwebtokens/7.0.2/microsoft.identitymodel.jsonwebtokens.7.0.2.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.logging/7.0.2/microsoft.identitymodel.logging.7.0.2.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.tokens/7.0.2/microsoft.identitymodel.tokens.7.0.2.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/mono.texttemplating/2.2.1/mono.texttemplating.2.2.1.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/npgsql/7.0.7/npgsql.7.0.7.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/npgsql.entityframeworkcore.postgresql/7.0.18/npgsql.entityframeworkcore.postgresql.7.0.18.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/system.codedom/4.4.0/system.codedom.4.4.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/system.identitymodel.tokens.jwt/7.0.2/system.identitymodel.tokens.jwt.7.0.2.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/system.text.encodings.web/7.0.0/system.text.encodings.web.7.0.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/system.text.json/7.0.0/system.text.json.7.0.0.nupkg.sha512"
   ],

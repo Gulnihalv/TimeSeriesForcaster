@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Interfaces;
 using TimeSeriesForecaster.Application.Services;
 using TimeSeriesForecaster.Domain.Entities;
@@ -33,13 +36,31 @@ builder.Services.AddIdentity<AppUser, IdentityRole<int>>(options =>
         options.Password.RequiredLength = 6;
     })
     .AddEntityFrameworkStores<AppDbContext>();
+    
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 
+var jwtSecret = builder.Configuration["JwtSettings:Secret"];
+if (string.IsNullOrEmpty(jwtSecret))
+{
+    throw new InvalidOperationException("JWT Secret anahtarı yapılandırılmamış.");
+}
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(jwtOptions =>
+            {
+                jwtOptions.TokenValidationParameters = new TokenValidationParameters
+                {
+                    IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtSecret)),
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+                    ValidAudience = builder.Configuration["JwtSettings:Audience"],
+                };
+            });
 
 //  otomatik kayıt yapan extension metodunu yazıcam ama şimdilik manuel ekliyoruz
 builder.Services.AddScoped<IAuthService, AuthService>();
 // Buraya diğer repository ve servislerin kayıtları da geliyo
-
 
 // Controller ve Swagger servisleri
 builder.Services.AddControllers();

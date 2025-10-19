@@ -6,5 +6,5 @@ namespace TimeSeriesForecaster.Application.Interfaces;
 public interface IAuthService
 {
     Task<IdentityResult> RegisterUserAsync(UserForRegistrationDto userForRegistrationDto);
-    Task<bool> ValidateUserAsync(UserForAuthenticationDto userForAuthenticationDto);
+    Task<string?> LoginAsync(UserForAuthenticationDto userForAuthenticationDto);
 }

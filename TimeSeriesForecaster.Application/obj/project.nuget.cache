@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "+N3+xziFa8AX2FxN5kx6tPhO2QTfW5Ta8DslxWd1RZM7sWjWJlVmwCe2dXaE4OzkQWR2YPJn7A2UkmJMCldzSw==",
+  "dgSpecHash": "RSOJqmzWWGd1GgVaFnSVYSBgKE0dqOFPU6I5AMPAsG/HKxlDiZUGK2XIpHkC+Un6BkJQyTh2IshUIIFFlj4Kug==",
   "success": true,
   "projectFilePath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Application/TimeSeriesForecaster.Application.csproj",
   "expectedPackageFiles": [
@@ -14,7 +14,12 @@
     "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.logging/7.0.0/microsoft.extensions.logging.7.0.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.logging.abstractions/7.0.0/microsoft.extensions.logging.abstractions.7.0.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.options/7.0.1/microsoft.extensions.options.7.0.1.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.primitives/7.0.0/microsoft.extensions.primitives.7.0.0.nupkg.sha512"
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.primitives/7.0.0/microsoft.extensions.primitives.7.0.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.abstractions/7.0.2/microsoft.identitymodel.abstractions.7.0.2.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.jsonwebtokens/7.0.2/microsoft.identitymodel.jsonwebtokens.7.0.2.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.logging/7.0.2/microsoft.identitymodel.logging.7.0.2.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.tokens/7.0.2/microsoft.identitymodel.tokens.7.0.2.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/system.identitymodel.tokens.jwt/7.0.2/system.identitymodel.tokens.jwt.7.0.2.nupkg.sha512"
   ],
   "logs": []
 }
