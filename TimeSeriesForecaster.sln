@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TimeSeriesForecaster.Application", "TimeSeriesForecaster.Application\TimeSeriesForecaster.Application.csproj", "{DAF8CADD-87B2-4625-AE1A-C7F1DD06355B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TimeSeriesForecaster.Domain", "TimeSeriesForecaster.Domain\TimeSeriesForecaster.Domain.csproj", "{D2386B4C-808A-4661-AB76-E8AB6CCC022C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TimeSeriesForecaster.Infrastructure", "TimeSeriesForecaster.Infrastructure\TimeSeriesForecaster.Infrastructure.csproj", "{2D22B971-5DF4-491C-9321-F4B7D3742776}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TimeSeriesForecaster.WebAPI", "TimeSeriesForecaster.WebAPI\TimeSeriesForecaster.WebAPI.csproj", "{A48DFCAD-1F28-49FE-9E11-3BB08B2570B0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DAF8CADD-87B2-4625-AE1A-C7F1DD06355B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAF8CADD-87B2-4625-AE1A-C7F1DD06355B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAF8CADD-87B2-4625-AE1A-C7F1DD06355B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAF8CADD-87B2-4625-AE1A-C7F1DD06355B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2386B4C-808A-4661-AB76-E8AB6CCC022C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2386B4C-808A-4661-AB76-E8AB6CCC022C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2386B4C-808A-4661-AB76-E8AB6CCC022C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2386B4C-808A-4661-AB76-E8AB6CCC022C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D22B971-5DF4-491C-9321-F4B7D3742776}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D22B971-5DF4-491C-9321-F4B7D3742776}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D22B971-5DF4-491C-9321-F4B7D3742776}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D22B971-5DF4-491C-9321-F4B7D3742776}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A48DFCAD-1F28-49FE-9E11-3BB08B2570B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A48DFCAD-1F28-49FE-9E11-3BB08B2570B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A48DFCAD-1F28-49FE-9E11-3BB08B2570B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A48DFCAD-1F28-49FE-9E11-3BB08B2570B0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
