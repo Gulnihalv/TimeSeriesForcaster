@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TimeSeriesForecaster.Application.Configuration;
@@ -70,7 +69,7 @@ public class AuthService : IAuthService
         var audience = _jwtSettings.Audience;
         var durationInMinutes = Convert.ToInt32(_jwtSettings.DurationInMinutes);
 
-        var claims = new[] // sonradan rol id gibi kısımlar eklenilebilir.
+        var claims = new[] // sonradan rol gibi kısımlar eklenilebilir.
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Email, user.Email!),

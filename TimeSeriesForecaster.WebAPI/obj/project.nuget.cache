@@ -1,15 +1,18 @@
 {
   "version": 2,
-  "dgSpecHash": "JbgSSmYn7GyWsHUHL1mGChCe00j44kd6hCZ1KVNdwwV6aGa51jLA56iO325VOSdMVgqZdvuxqEHc9tk+apNgdg==",
+  "dgSpecHash": "OGNamGmpwV6uzBK1gmln/0fSfqwTwZzaOuNnOQhOTSSNUhi27ClUgfZ84pAJ5wFSnBNwMXKF8qfZ7Dx31ojmoA==",
   "success": true,
   "projectFilePath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.WebAPI/TimeSeriesForecaster.WebAPI.csproj",
   "expectedPackageFiles": [
+    "/Users/gulnihalvurat/.nuget/packages/automapper/9.0.0/automapper.9.0.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/automapper.extensions.microsoft.dependencyinjection/7.0.0/automapper.extensions.microsoft.dependencyinjection.7.0.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/humanizer.core/2.14.1/humanizer.core.2.14.1.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.aspnetcore.authentication.jwtbearer/7.0.20/microsoft.aspnetcore.authentication.jwtbearer.7.0.20.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.aspnetcore.cryptography.internal/7.0.20/microsoft.aspnetcore.cryptography.internal.7.0.20.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.aspnetcore.cryptography.keyderivation/7.0.20/microsoft.aspnetcore.cryptography.keyderivation.7.0.20.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.aspnetcore.identity.entityframeworkcore/7.0.20/microsoft.aspnetcore.identity.entityframeworkcore.7.0.20.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.aspnetcore.openapi/7.0.5/microsoft.aspnetcore.openapi.7.0.5.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.csharp/4.5.0/microsoft.csharp.4.5.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.entityframeworkcore/7.0.20/microsoft.entityframeworkcore.7.0.20.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.entityframeworkcore.abstractions/7.0.20/microsoft.entityframeworkcore.abstractions.7.0.20.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.entityframeworkcore.analyzers/7.0.20/microsoft.entityframeworkcore.analyzers.7.0.20.nupkg.sha512",
@@ -34,6 +37,8 @@
     "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.protocols/6.35.0/microsoft.identitymodel.protocols.6.35.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.protocols.openidconnect/6.35.0/microsoft.identitymodel.protocols.openidconnect.6.35.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.tokens/7.0.2/microsoft.identitymodel.tokens.7.0.2.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.netcore.platforms/1.1.0/microsoft.netcore.platforms.1.1.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.netcore.targets/1.1.0/microsoft.netcore.targets.1.1.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.openapi/1.4.3/microsoft.openapi.1.4.3.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/mono.texttemplating/2.2.1/mono.texttemplating.2.2.1.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/npgsql/7.0.7/npgsql.7.0.7.nupkg.sha512",
@@ -44,8 +49,16 @@
     "/Users/gulnihalvurat/.nuget/packages/swashbuckle.aspnetcore.swaggerui/6.4.0/swashbuckle.aspnetcore.swaggerui.6.4.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/system.codedom/4.4.0/system.codedom.4.4.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/system.identitymodel.tokens.jwt/7.0.2/system.identitymodel.tokens.jwt.7.0.2.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/system.io/4.3.0/system.io.4.3.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/system.reflection/4.3.0/system.reflection.4.3.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/system.reflection.emit/4.3.0/system.reflection.emit.4.3.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/system.reflection.emit.ilgeneration/4.3.0/system.reflection.emit.ilgeneration.4.3.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/system.reflection.primitives/4.3.0/system.reflection.primitives.4.3.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/system.runtime/4.3.0/system.runtime.4.3.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/system.text.encoding/4.3.0/system.text.encoding.4.3.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/system.text.encodings.web/7.0.0/system.text.encodings.web.7.0.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/system.text.json/7.0.0/system.text.json.7.0.0.nupkg.sha512"
+    "/Users/gulnihalvurat/.nuget/packages/system.text.json/7.0.0/system.text.json.7.0.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/system.threading.tasks/4.3.0/system.threading.tasks.4.3.0.nupkg.sha512"
   ],
   "logs": []
 }
