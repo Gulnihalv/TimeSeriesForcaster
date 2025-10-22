@@ -1,7 +1,7 @@
-using TimeSeriesForecaster.Application.Interfaces;
 using TimeSeriesForecaster.Domain.Entities;
 using TimeSeriesForecaster.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using TimeSeriesForecaster.Application.Contracts.Persistence;
 
 namespace TimeSeriesForecaster.Infrastructure.Repositories;
 

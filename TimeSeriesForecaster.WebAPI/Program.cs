@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using TimeSeriesForecaster.Application.Configuration;
-using TimeSeriesForecaster.Application.Interfaces;
+using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.Services;
 using TimeSeriesForecaster.Domain.Entities;
 using TimeSeriesForecaster.Infrastructure.Persistence;

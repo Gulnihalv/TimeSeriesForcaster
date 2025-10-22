@@ -4,8 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TimeSeriesForecaster.Application.Configuration;
+using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.DTOs;
-using TimeSeriesForecaster.Application.Interfaces;
 using TimeSeriesForecaster.Domain.Entities;
 
 namespace TimeSeriesForecaster.Application.Services;

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using TimeSeriesForecaster.Application.DTOs;
 
-namespace TimeSeriesForecaster.Application.Interfaces;
+namespace TimeSeriesForecaster.Application.Contracts.Application;
 
 public interface IAuthService
 {

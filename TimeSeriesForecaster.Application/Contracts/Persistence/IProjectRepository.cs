@@ -1,6 +1,6 @@
 using TimeSeriesForecaster.Domain.Entities;
 
-namespace TimeSeriesForecaster.Application.Interfaces;
+namespace TimeSeriesForecaster.Application.Contracts.Persistence;
 
 public interface IProjectRepository
 {

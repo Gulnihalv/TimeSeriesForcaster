@@ -1,4 +1,4 @@
-namespace TimeSeriesForecaster.Application.Interfaces;
+namespace TimeSeriesForecaster.Application.Contracts.Persistence;
 
 public interface IUnitOfWork
 {

@@ -1,6 +1,6 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
-using TimeSeriesForecaster.Application.Interfaces;
+using TimeSeriesForecaster.Application.Contracts.Persistence;
 using TimeSeriesForecaster.Domain.Entities;
 using TimeSeriesForecaster.Infrastructure.Persistence;
 

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.DTOs;
-using TimeSeriesForecaster.Application.Interfaces;
 
 namespace TimeSeriesForecaster.WebAPI.Controllers;
 
@@ -27,5 +27,17 @@ public class AuthenticationController : ControllerBase
         }
 
         return CreatedAtAction(nameof(Register), new { email = userForRegistrationDto.Email }, userForRegistrationDto);
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] UserForAuthenticationDto userForAuthDto)
+    {
+        var result = await _authService.LoginAsync(userForAuthDto);
+        if (result == null)
+        {
+            return Unauthorized(result);
+        }
+
+        return Ok(new { Token = result });
     }
 }

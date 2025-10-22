@@ -1,4 +1,4 @@
-using TimeSeriesForecaster.Application.Interfaces;
+using TimeSeriesForecaster.Application.Contracts.Persistence;
 
 namespace TimeSeriesForecaster.Infrastructure.Persistence;
 
