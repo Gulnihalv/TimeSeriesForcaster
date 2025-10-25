@@ -5,9 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Contracts.Application;
+using TimeSeriesForecaster.Application.Contracts.Persistence;
 using TimeSeriesForecaster.Application.Services;
 using TimeSeriesForecaster.Domain.Entities;
 using TimeSeriesForecaster.Infrastructure.Persistence;
+using TimeSeriesForecaster.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +29,7 @@ builder.Services.AddCors(options =>
 // DbContext kaydı
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 
 builder.Services.AddIdentity<AppUser, IdentityRole<int>>(options =>
     {
@@ -60,7 +63,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             });
 
 //  otomatik kayıt yapan extension metodunu yazıcam ama şimdilik manuel ekliyoruz
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddAutoMapper(typeof(TimeSeriesForecaster.Application.Mappings.MappingProfile));
 // Buraya diğer repository ve servislerin kayıtları da geliyo
 

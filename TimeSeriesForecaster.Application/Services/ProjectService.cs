@@ -21,7 +21,7 @@ public class ProjectService : IProjectService
 
     public async Task<IEnumerable<ProjectDto>> GetProjectsForUserAsync(int userId)
     {
-        var projects = await _projectRepository.GetAllProjectsForUserAsync(userId: userId, trackChanges: false, includeInactive: true); // Burası readonly bir method olduğunan trackchangesi false yaptım.
+        var projects = await _projectRepository.GetAllProjectsForUserAsync(userId: userId, trackChanges: false, includeInactive: true); // Burası readonly bir method olduğunan trackchangesi false
 
         var projectsDto = _mapper.Map<IEnumerable<ProjectDto>>(projects);
         return projectsDto;
@@ -40,5 +40,23 @@ public class ProjectService : IProjectService
 
         var projectResultDto = _mapper.Map<ProjectDto>(projectEntity);
         return projectResultDto;
-    } 
+    }
+
+    public async Task<ProjectDto?> GetProjectByIdAsync(int projectId, int userId)
+    {
+        var userOwnsProject = await _projectRepository.UserOwnsProjectAsync(projectId: projectId, userId: userId);
+        if (!userOwnsProject)
+        {
+            return null;
+        }
+
+        var project = await _projectRepository.GetProjectByIdAsync(id: userId, trackChanges: false);
+        if (project == null)
+        {
+            return null;
+        }
+
+        var projectDto = _mapper.Map<ProjectDto>(project);
+        return projectDto;
+    }
 }
