@@ -30,6 +30,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<IDatasetRepository, DatasetRepository>();
 
 builder.Services.AddIdentity<AppUser, IdentityRole<int>>(options =>
     {
@@ -49,23 +50,29 @@ if (string.IsNullOrEmpty(jwtSecret))
     throw new InvalidOperationException("JWT Secret anahtarı yapılandırılmamış.");
 }
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(jwtOptions =>
-            {
-                jwtOptions.TokenValidationParameters = new TokenValidationParameters
-                {
-                    IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtSecret)),
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-                    ValidAudience = builder.Configuration["JwtSettings:Audience"],
-                };
-            });
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(jwtOptions => 
+{
+    jwtOptions.TokenValidationParameters = new TokenValidationParameters
+    {
+        IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtSecret)),
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
+    };
+});
 
 //  otomatik kayıt yapan extension metodunu yazıcam ama şimdilik manuel ekliyoruz
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IDatasetService, DatasetService>();
 builder.Services.AddAutoMapper(typeof(TimeSeriesForecaster.Application.Mappings.MappingProfile));
 // Buraya diğer repository ve servislerin kayıtları da geliyo
 
