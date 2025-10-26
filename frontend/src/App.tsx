@@ -1,34 +1,32 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { Routes, Route } from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import ProtectedRoute from './router/ProtectedRoute';
+import GuestRoute from './router/GuestRoute';
+
 import './App.css';
 
-interface Test {
-  message: string;
-}
-
 function App() {
-  const [message, setMessage] = useState<Test>({ message: '' });
-
-  const API_URL = 'http://localhost:5131/api/test/ping';
-
-  useEffect(() => {
-    axios.get(API_URL)
-      .then(response => {
-        setMessage(response.data);
-      })
-      .catch(err => {
-        console.error("API isteği sırasında hata oluştu!", err);
-      });
-  }, []); 
-
   return (
-    <>
-      <h1>Akıllı Zaman Serisi Platformu</h1>
-      <h2>Ping Pong Deneme</h2>
-      <ul>
-        message: {message.message ? (<p> {message.message}</p>) : (<p>Yükleniyor...</p>)}
-      </ul>
-    </>
+    <Routes>
+      {/* Misafir */}
+      <Route element={<GuestRoute />}>
+        <Route path="/login" element={<LoginPage />} />
+        {/* register da buraya gelicek*/}
+      </Route>
+
+      {/* login olan kullanıcılar */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/dashboard" element={<DashboardPage />} />
+        {/* login olanların routeları gelcek*/}
+      </Route>
+
+      {/* herkes */}
+      <Route path="/" element={<HomePage />} />
+
+      {/* hata vs. 404 gibi*/}
+    </Routes>
   );
 }
 

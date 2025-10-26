@@ -1,0 +1,13 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh; /* Tüm ekranı kapla */
+  background-color: #f4f7f6; /* Hafif bir arka plan rengi */
+}
+
+/* LoginForm'un maksimum genişliğini sınırlayalım */
+.container > :first-child {
+  width: 100%;
+  max-width: 400px;
+}

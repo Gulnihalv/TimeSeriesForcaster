@@ -1,0 +1,21 @@
+.button {
+  width: 100%;
+  padding: 10px 15px;
+  border: none;
+  border-radius: var(--border-radius-medium);
+  background-color: var(--color-primary);
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.button:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.button:disabled {
+  background-color: var(--color-border);
+  cursor: not-allowed;
+}

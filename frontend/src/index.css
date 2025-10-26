@@ -1,16 +1,16 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  --color-primary: #007bff;
+  --color-primary-hover: #0056b3;
+  --color-text: #333;
+  --color-border: #ccc;
+  --color-surface: #ffffff; /* Kart arka planı */
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* Ölçüler */
+  --spacing-medium: 16px;
+  --border-radius-medium: 8px;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Gölgeler */
+  --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 a {
