@@ -50,7 +50,7 @@ public class ProjectService : IProjectService
             return null;
         }
 
-        var project = await _projectRepository.GetProjectByIdAsync(id: userId, trackChanges: false);
+        var project = await _projectRepository.GetProjectByIdAsync(id: projectId, trackChanges: false);
         if (project == null)
         {
             return null;
