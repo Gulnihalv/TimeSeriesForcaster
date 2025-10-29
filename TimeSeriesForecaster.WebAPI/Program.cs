@@ -1,4 +1,6 @@
 using AutoMapper;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -29,8 +31,6 @@ builder.Services.AddCors(options =>
 // DbContext kaydı
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
-builder.Services.AddScoped<IDatasetRepository, DatasetRepository>();
 
 builder.Services.AddIdentity<AppUser, IdentityRole<int>>(options =>
     {
@@ -56,7 +56,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(jwtOptions => 
+.AddJwtBearer(jwtOptions =>
 {
     jwtOptions.TokenValidationParameters = new TokenValidationParameters
     {
@@ -68,6 +68,12 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Hangfire
+builder.Services.AddHangfire(config =>
+    config.UsePostgreSqlStorage(c =>
+        c.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"))));
+builder.Services.AddHangfireServer();
+
 //  otomatik kayıt yapan extension metodunu yazıcam ama şimdilik manuel ekliyoruz
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -75,6 +81,9 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IDatasetService, DatasetService>();
 builder.Services.AddAutoMapper(typeof(TimeSeriesForecaster.Application.Mappings.MappingProfile));
 // Buraya diğer repository ve servislerin kayıtları da geliyo
+
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<IDatasetRepository, DatasetRepository>();
 
 // Controller ve Swagger servisleri
 builder.Services.AddControllers();
@@ -94,9 +103,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors(reactAppPolicy);
+app.UseHangfireDashboard("/hangfire");
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
