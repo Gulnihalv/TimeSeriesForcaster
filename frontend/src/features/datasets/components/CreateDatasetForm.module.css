@@ -1,0 +1,19 @@
+.formGroup {
+  margin-bottom: var(--spacing-medium);
+  width: 100%;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.error {
+  color: #D8000C;
+  background-color: #FFD2D2;
+  padding: 10px;
+  border-radius: var(--border-radius-medium);
+  margin-bottom: var(--spacing-medium);
+  text-align: center;
+}

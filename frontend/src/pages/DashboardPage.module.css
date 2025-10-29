@@ -1,21 +1,21 @@
-.dashboardContainer {
-  max-width: 960px;
-  margin: 20px auto;
-  padding: 20px;
-}
-
-.header {
+.welcomeCard {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  gap: 20px;
 }
 
-.header h1 {
-  margin: 0;
+.welcomeImage {
+  max-width: 300px;
+  border-radius: 8px;
 }
 
-.headerButtons {
-  display: flex;
-  gap: 10px;
+.welcomeButton {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--border-radius-medium);
+  font-size: 1rem;
+  cursor: pointer;
 }

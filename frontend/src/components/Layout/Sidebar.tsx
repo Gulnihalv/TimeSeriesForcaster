@@ -21,20 +21,15 @@ const SideBar = () => {
         const activeLink = navList.querySelector<HTMLAnchorElement>('a[aria-current="page"]');
 
         if (activeLink) {
-            // Aktif linkin parent'ı olan <li> elementini bul
             const activeLi = activeLink.parentElement as HTMLLIElement;
-            
-            // <li>'nin <ul>'e göre pozisyonunu ve yüksekliğini al
             const top = activeLi.offsetTop;
             const height = activeLi.offsetHeight;
 
-            // Kayan seçicinin stilini güncelle
             selector.style.top = `${top}px`;
             selector.style.height = `${height}px`;
-            selector.style.opacity = '1'; // Görünür yap
+            selector.style.opacity = '1';
         } else {
-            // Aktif link yoksa (örn: /settings sayfası menüde yoksa)
-            selector.style.opacity = '0'; // Gizle
+            selector.style.opacity = '0';
         }
 
     }, [location]);

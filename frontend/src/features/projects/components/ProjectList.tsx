@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { getProjects, type Project } from '../api/projectApi';
 import Card from '../../../components/Card/Card';
 import styles from './ProjectList.module.css';
+import { useNavigate } from 'react-router-dom';
 
 const ProjectList = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -26,6 +28,10 @@ const ProjectList = () => {
     fetchProjects();
   }, []);
 
+  const handleCardClick = (projectId: number) => {
+    navigate(`/projects/${projectId}`);
+  };
+
   if (isLoading) {
     return <div>Yükleniyor...</div>;
   }
@@ -38,7 +44,11 @@ const ProjectList = () => {
         <p>Henüz hiç projeniz yok. Yeni bir tane oluşturun!</p>
       ) : (
         projects.map((project) => (
-          <Card key={project.id}>
+          <Card 
+            key={project.id}
+            onClick={() => handleCardClick(project.id)}
+            className={styles.projectCardWrapper}
+          >
             <div className={styles.projectCard}>
               <h3>{project.name}</h3>
               <p>{project.description || 'Açıklama yok'}</p>
