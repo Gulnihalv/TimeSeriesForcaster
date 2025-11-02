@@ -46,6 +46,10 @@
               "target": "Package",
               "version": "[7.0.1, )"
             },
+            "CsvHelper": {
+              "target": "Package",
+              "version": "[33.1.0, )"
+            },
             "Microsoft.IdentityModel.Tokens": {
               "target": "Package",
               "version": "[7.0.2, )"

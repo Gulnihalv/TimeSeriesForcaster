@@ -53,7 +53,7 @@ public class DatasetService : IDatasetService
     
     }
 
-    public async Task<DatasetDto?> CreateDatasetFromUploadAsync(int projectId, int userId, string name, IFormFile file)
+    public async Task<DatasetDto?> CreateDatasetFromUploadAsync(int projectId, int userId, string name, IFormFile file, string dateColumnName, string targetColumnName)
     {
         var userOwnsProject = await _projectRepository.UserOwnsProjectAsync(projectId: projectId, userId: userId);
         if (!userOwnsProject)

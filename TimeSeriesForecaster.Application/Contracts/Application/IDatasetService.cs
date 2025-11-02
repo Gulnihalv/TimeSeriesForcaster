@@ -7,5 +7,5 @@ public interface IDatasetService
 {
     Task<DatasetDto?> GetDatasetByIdAsync(int datasetId, int userId);
     Task<IEnumerable<DatasetDto>> GetAllDatasetsForProjectAsync(int projectId, int userId);
-    Task<DatasetDto?> CreateDatasetFromUploadAsync(int projectId, int userId, string name, IFormFile file);
+    Task<DatasetDto?> CreateDatasetFromUploadAsync(int projectId, int userId, string name, IFormFile file, string dateColumnName, string targetColumnName);
 }
