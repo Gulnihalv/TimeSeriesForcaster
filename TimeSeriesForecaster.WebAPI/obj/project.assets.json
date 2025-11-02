@@ -1083,6 +1083,7 @@
         "dependencies": {
           "AutoMapper": "7.0.1",
           "CsvHelper": "33.1.0",
+          "Hangfire.AspNetCore": "1.8.21",
           "Microsoft.IdentityModel.Tokens": "7.0.2",
           "System.IdentityModel.Tokens.Jwt": "7.0.2",
           "TimeSeriesForecaster.Domain": "1.0.0"

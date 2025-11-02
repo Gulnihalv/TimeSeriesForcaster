@@ -1,4 +1,5 @@
 using AutoMapper;
+using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using TimeSeriesForecaster.Application.Contracts.Application;
@@ -13,14 +14,16 @@ public class DatasetService : IDatasetService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDatasetRepository _datasetRepository;
     private readonly IProjectRepository _projectRepository;
+    private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly IMapper _mapper;
     private readonly IWebHostEnvironment _env;
 
-    public DatasetService(IUnitOfWork unitOfWork, IDatasetRepository datasetRepository, IProjectRepository projectRepository, IMapper mapper, IWebHostEnvironment env)
+    public DatasetService(IUnitOfWork unitOfWork, IDatasetRepository datasetRepository, IProjectRepository projectRepository, IBackgroundJobClient backgroundJobClient, IMapper mapper, IWebHostEnvironment env)
     {
         _unitOfWork = unitOfWork;
         _datasetRepository = datasetRepository;
         _projectRepository = projectRepository;
+        _backgroundJobClient = backgroundJobClient;
         _mapper = mapper;
         _env = env;
     }
@@ -63,7 +66,7 @@ public class DatasetService : IDatasetService
 
         var storagePath = await SaveFileAsync(file, "datasets");
 
-        var dasetEntity = new Dataset
+        var datasetEntity = new Dataset
         {
             ProjectId = projectId,
             Name = name,
@@ -72,13 +75,19 @@ public class DatasetService : IDatasetService
             RecordCount = 0,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
+            Status = ProcessingStatus.Queued,
             IsProcessed = false
         };
 
-        _datasetRepository.CreateDataset(dataset: dasetEntity);
+        _datasetRepository.CreateDataset(dataset: datasetEntity);
         await _unitOfWork.SaveChangesAsync();
 
-        var datasetResultDto = _mapper.Map<DatasetDto>(dasetEntity);
+        var jobId = _backgroundJobClient.Enqueue<IDataProcessingService>(service => service.ProcessDatasetAsync(datasetEntity.Id, CancellationToken.None));
+        datasetEntity.HangfireJobId = jobId;
+
+        await _unitOfWork.SaveChangesAsync();
+
+        var datasetResultDto = _mapper.Map<DatasetDto>(datasetEntity);
         return datasetResultDto;
     }
 

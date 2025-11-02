@@ -25,9 +25,13 @@ public class DataProcessingService : IDataProcessingService
     public async Task ProcessDatasetAsync(int datasetId, CancellationToken cancellationToken = default)
     {
         var dataset = await _datasetRepository.GetDatasetByIdAsync(id: datasetId, trackChanges: false);
-        var filePath = _env.ContentRootPath + dataset!.FilePath;
+        if (dataset == null) return;
 
+        var filePath = Path.Combine(_env.ContentRootPath, dataset.FilePath!);
         var dataPoints = new List<DataPoint>();
+
+        DateTime minDate = DateTime.MaxValue;
+        DateTime maxDate = DateTime.MinValue;
 
         using (var reader = new StreamReader(filePath))
         using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
@@ -35,17 +39,23 @@ public class DataProcessingService : IDataProcessingService
             csv.Read();
             csv.ReadHeader();
 
+            string dateColumn = dataset.DateColumn!;
+            string targetColumn = dataset.TargetColumn!;
+
             while (csv.Read())
             {
                 try
                 {
-                    var timeStamp = csv.GetField<DateTime>("TimeStamp");
-                    var value = csv.GetField<decimal>("Value");
+                    var timeStamp = csv.GetField<DateTime>(dateColumn);
+                    var value = csv.GetField<decimal>(targetColumn);
+
+                    if (timeStamp < minDate) minDate = timeStamp;
+                    if (timeStamp > maxDate) maxDate = timeStamp;
 
                     var newDataPoint = new DataPoint
                     {
                         DatasetId = dataset.Id,
-                        Timestamp = timeStamp,
+                        Timestamp = timeStamp.ToUniversalTime(),
                         Value = value,
                         IsOutlier = false,
                         CreatedAt = DateTime.UtcNow
@@ -53,7 +63,7 @@ public class DataProcessingService : IDataProcessingService
 
                     dataPoints.Add(newDataPoint);
                 }
-                catch (Exception ex)
+                catch // şimdilik loglama mekanizması yok.
                 {
                     // _logger.LogWarning($"CSV satırı okunamadı: {ex.Message}");
                 }
@@ -62,15 +72,19 @@ public class DataProcessingService : IDataProcessingService
 
         if (!dataPoints.Any())
         {
-            return;
+            dataset.IsProcessed = false;
+            dataset.ErrorMessage = "Dosyadan veri okunamadı veya sütunlar yanlış.";
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
+
         await _dataPointRepository.CreateDataPointsBulkAsync(dataPoints);
 
         dataset.IsProcessed = true;
         dataset.RecordCount = dataPoints.Count;
-        dataset.StartDate = dataPoints.Min(dp => dp.Timestamp);
-        dataset.EndDate = dataPoints.Max(dp => dp.Timestamp);
-
+        dataset.StartDate = minDate;
+        dataset.EndDate = maxDate;
+        dataset.UpdatedAt = DateTime.UtcNow;
+        
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

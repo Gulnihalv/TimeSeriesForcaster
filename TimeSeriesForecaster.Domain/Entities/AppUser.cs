@@ -10,6 +10,5 @@ public class AppUser : IdentityUser<int>
     public DateTime UpdatedAt { get; set; }
     public bool IsActive { get; set; }
     public ICollection<Project>? Projects { get; set; } // Collection navigation property
-    public ICollection<BackgroundJob>? BackgroundJobs { get; set; } // Collection navigation property
     public bool IsAdmin { get; set; }
 }

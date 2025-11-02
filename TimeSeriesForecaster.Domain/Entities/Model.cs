@@ -1,13 +1,5 @@
 namespace TimeSeriesForecaster.Domain.Entities;
 
-public enum ModelStatus
-    {
-        Created,
-        Training,
-        Completed,
-        Failed
-    }
-
 public class Model
 {
     public int Id { get; set; }
@@ -23,6 +15,7 @@ public class Model
     public string? Hyperparameters { get; set; } // burası daha sonra jsonb olarak değişebilir.
     public string? ModelFilePath { get; set; }
     public ModelStatus? Status { get; set; }
+    public string? HangfireJobId { get; set; }
     public DateTime? TrainingStartedAt { get; set; }
     public DateTime? TrainingCompletedAt { get; set; }
     public DateTime CreatedAt { get; set; }

@@ -50,6 +50,10 @@
               "target": "Package",
               "version": "[33.1.0, )"
             },
+            "Hangfire.AspNetCore": {
+              "target": "Package",
+              "version": "[1.8.21, )"
+            },
             "Microsoft.IdentityModel.Tokens": {
               "target": "Package",
               "version": "[7.0.2, )"

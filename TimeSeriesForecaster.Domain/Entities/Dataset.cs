@@ -15,9 +15,12 @@ public class Dataset
     public string? DateColumn { get; set; }
     public string? TargetColumn { get; set; }
     public string? DataFrequency { get; set; }
-    public string? StartDate { get; set; }
-    public string? EndDate { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public ProcessingStatus Status { get; set; }
+    public string? ErrorMessage { get; set; }
+    public string? HangfireJobId { get; set; }
     public bool IsProcessed { get; set; }
 }
