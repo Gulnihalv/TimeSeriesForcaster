@@ -82,9 +82,21 @@ public class DatasetService : IDatasetService
         _datasetRepository.CreateDataset(dataset: datasetEntity);
         await _unitOfWork.SaveChangesAsync();
 
-        var jobId = _backgroundJobClient.Enqueue<IDataProcessingService>(service => service.ProcessDatasetAsync(datasetEntity.Id, CancellationToken.None));
+        string jobId;
+        try
+        {
+            jobId = _backgroundJobClient.Enqueue<IDataProcessingService>(service => 
+                service.ProcessDatasetAsync(datasetEntity.Id, CancellationToken.None));
+        }
+        catch (Exception ex)
+        {
+            datasetEntity.Status = ProcessingStatus.Failed;
+            datasetEntity.ErrorMessage = $"Enqueue'da hata oluştu: {ex.Message}";
+            await _unitOfWork.SaveChangesAsync();
+            return null; 
+        }
+        
         datasetEntity.HangfireJobId = jobId;
-
         await _unitOfWork.SaveChangesAsync();
 
         var datasetResultDto = _mapper.Map<DatasetDto>(datasetEntity);
