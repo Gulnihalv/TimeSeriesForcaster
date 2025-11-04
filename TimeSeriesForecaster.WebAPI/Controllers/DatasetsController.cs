@@ -18,7 +18,7 @@ public class DatasetsController : ControllerBase
     }
 
     [HttpPost("/api/projects/{projectId}/datasets/upload")]
-    public async Task<IActionResult> CreateDatasetFromUpload(int projectId, [FromForm] string name, IFormFile file)
+    public async Task<IActionResult> CreateDatasetFromUpload(int projectId, [FromForm] string name, IFormFile file, [FromForm] string dateColumnName, [FromForm] string targetColumnName)
     {
         var userId = User.GetUserId();
         if (userId == null)
@@ -26,7 +26,7 @@ public class DatasetsController : ControllerBase
             return Unauthorized("User id bulunmadı");
         }
 
-        var result = await _datasetService.CreateDatasetFromUploadAsync(projectId, userId.Value, name, file);
+        var result = await _datasetService.CreateDatasetFromUploadAsync(projectId, userId.Value, name, file, dateColumnName, targetColumnName);
         if (result == null)
         {
             return Forbid("Yetkin Yok!");

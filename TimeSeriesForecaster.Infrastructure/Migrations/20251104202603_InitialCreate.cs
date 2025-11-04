@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace TimeSeriesForecaster.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class CreateInitialSchema : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -204,10 +204,13 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
                     DateColumn = table.Column<string>(type: "text", nullable: true),
                     TargetColumn = table.Column<string>(type: "text", nullable: true),
                     DataFrequency = table.Column<string>(type: "text", nullable: true),
-                    StartDate = table.Column<string>(type: "text", nullable: true),
-                    EndDate = table.Column<string>(type: "text", nullable: true),
+                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    ErrorMessage = table.Column<string>(type: "text", nullable: true),
+                    HangfireJobId = table.Column<string>(type: "text", nullable: true),
                     IsProcessed = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
@@ -215,45 +218,6 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
                     table.PrimaryKey("PK_Datasets", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Datasets_Projects_ProjectId",
-                        column: x => x.ProjectId,
-                        principalTable: "Projects",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "BackgroundJobs",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserId = table.Column<int>(type: "integer", nullable: false),
-                    ProjectId = table.Column<int>(type: "integer", nullable: false),
-                    DatasetId = table.Column<int>(type: "integer", nullable: true),
-                    JobType = table.Column<int>(type: "integer", nullable: true),
-                    JobData = table.Column<string>(type: "text", nullable: true),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    ErrorMessage = table.Column<string>(type: "text", nullable: true),
-                    StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    Progress = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_BackgroundJobs", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_BackgroundJobs_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_BackgroundJobs_Datasets_DatasetId",
-                        column: x => x.DatasetId,
-                        principalTable: "Datasets",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_BackgroundJobs_Projects_ProjectId",
                         column: x => x.ProjectId,
                         principalTable: "Projects",
                         principalColumn: "Id",
@@ -297,6 +261,7 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
                     Hyperparameters = table.Column<string>(type: "text", nullable: true),
                     ModelFilePath = table.Column<string>(type: "text", nullable: true),
                     Status = table.Column<int>(type: "integer", nullable: true),
+                    HangfireJobId = table.Column<string>(type: "text", nullable: true),
                     TrainingStartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     TrainingCompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -405,21 +370,6 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_BackgroundJobs_DatasetId",
-                table: "BackgroundJobs",
-                column: "DatasetId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BackgroundJobs_ProjectId",
-                table: "BackgroundJobs",
-                column: "ProjectId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BackgroundJobs_UserId",
-                table: "BackgroundJobs",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_DataPoints_DatasetId",
                 table: "DataPoints",
                 column: "DatasetId");
@@ -472,9 +422,6 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens");
-
-            migrationBuilder.DropTable(
-                name: "BackgroundJobs");
 
             migrationBuilder.DropTable(
                 name: "DataPoints");

@@ -239,55 +239,6 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("TimeSeriesForecaster.Domain.Entities.BackgroundJob", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("DatasetId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("text");
-
-                    b.Property<string>("JobData")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("JobType")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Progress")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ProjectId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("StartedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DatasetId");
-
-                    b.HasIndex("ProjectId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("BackgroundJobs");
-                });
-
             modelBuilder.Entity("TimeSeriesForecaster.Domain.Entities.DataPoint", b =>
                 {
                     b.Property<long>("Id")
@@ -338,10 +289,16 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
-                    b.Property<string>("EndDate")
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorMessage")
                         .HasColumnType("text");
 
                     b.Property<string>("FilePath")
+                        .HasColumnType("text");
+
+                    b.Property<string>("HangfireJobId")
                         .HasColumnType("text");
 
                     b.Property<bool>("IsProcessed")
@@ -359,8 +316,11 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
                     b.Property<int>("RecordCount")
                         .HasColumnType("integer");
 
-                    b.Property<string>("StartDate")
-                        .HasColumnType("text");
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.Property<string>("TargetColumn")
                         .HasColumnType("text");
@@ -391,6 +351,9 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
 
                     b.Property<int>("DatasetId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("HangfireJobId")
+                        .HasColumnType("text");
 
                     b.Property<string>("Hyperparameters")
                         .HasColumnType("text");
@@ -578,31 +541,6 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("TimeSeriesForecaster.Domain.Entities.BackgroundJob", b =>
-                {
-                    b.HasOne("TimeSeriesForecaster.Domain.Entities.Dataset", "Dataset")
-                        .WithMany()
-                        .HasForeignKey("DatasetId");
-
-                    b.HasOne("TimeSeriesForecaster.Domain.Entities.Project", "Project")
-                        .WithMany("BackgroundJobs")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TimeSeriesForecaster.Domain.Entities.AppUser", "User")
-                        .WithMany("BackgroundJobs")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Dataset");
-
-                    b.Navigation("Project");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("TimeSeriesForecaster.Domain.Entities.DataPoint", b =>
                 {
                     b.HasOne("TimeSeriesForecaster.Domain.Entities.Dataset", "Dataset")
@@ -679,8 +617,6 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
 
             modelBuilder.Entity("TimeSeriesForecaster.Domain.Entities.AppUser", b =>
                 {
-                    b.Navigation("BackgroundJobs");
-
                     b.Navigation("Projects");
                 });
 
@@ -700,8 +636,6 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
 
             modelBuilder.Entity("TimeSeriesForecaster.Domain.Entities.Project", b =>
                 {
-                    b.Navigation("BackgroundJobs");
-
                     b.Navigation("Datasets");
 
                     b.Navigation("Models");
