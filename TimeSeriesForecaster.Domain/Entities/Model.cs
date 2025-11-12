@@ -16,6 +16,7 @@ public class Model
     public string? ModelFilePath { get; set; }
     public ModelStatus? Status { get; set; }
     public string? HangfireJobId { get; set; }
+    public string? ErrorMessage { get; set; }
     public DateTime? TrainingStartedAt { get; set; }
     public DateTime? TrainingCompletedAt { get; set; }
     public DateTime CreatedAt { get; set; }

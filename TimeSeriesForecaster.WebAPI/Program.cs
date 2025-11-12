@@ -73,23 +73,25 @@ builder.Services.AddHangfire(config =>
     config.UsePostgreSqlStorage(c =>
         c.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"))));
 builder.Services.AddHangfireServer();
+builder.Services.AddHttpClient();
 
 //  otomatik kayıt yapan extension metodunu yazıcam ama şimdilik manuel ekliyoruz
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IDatasetService, DatasetService>();
+builder.Services.AddScoped<IModelService, ModelService>();
 builder.Services.AddAutoMapper(typeof(TimeSeriesForecaster.Application.Mappings.MappingProfile));
 // Buraya diğer repository ve servislerin kayıtları da geliyo
 
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IDatasetRepository, DatasetRepository>();
+builder.Services.AddScoped<IModelRepository, ModelRepository>();
 
 // Controller ve Swagger servisleri
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
 
 // --- Middleware Pipeline Konfigürasyonu ---
 

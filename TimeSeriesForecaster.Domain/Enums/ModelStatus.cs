@@ -2,7 +2,7 @@ namespace TimeSeriesForecaster;
 
 public enum ModelStatus
 {
-    Created,
+    Queued,
     Training,
     Completed,
     Failed
