@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "Xx5XCycaS24UZKK0PrMvcLLGdTTH4q6emYLBotmDmAjsEGdJHvB6ykDxDIl1/1HnRIOCyGOpvb2qTnjK4+pVgg==",
+  "dgSpecHash": "YU1fngaD95g=",
   "success": true,
   "projectFilePath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.WebAPI/TimeSeriesForecaster.WebAPI.csproj",
   "expectedPackageFiles": [
@@ -67,7 +67,10 @@
     "/Users/gulnihalvurat/.nuget/packages/system.text.encoding/4.3.0/system.text.encoding.4.3.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/system.text.encodings.web/7.0.0/system.text.encodings.web.7.0.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/system.text.json/7.0.0/system.text.json.7.0.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/system.threading.tasks/4.3.0/system.threading.tasks.4.3.0.nupkg.sha512"
+    "/Users/gulnihalvurat/.nuget/packages/system.threading.tasks/4.3.0/system.threading.tasks.4.3.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.netcore.app.ref/7.0.20/microsoft.netcore.app.ref.7.0.20.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.aspnetcore.app.ref/7.0.20/microsoft.aspnetcore.app.ref.7.0.20.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.netcore.app.host.osx-arm64/7.0.20/microsoft.netcore.app.host.osx-arm64.7.0.20.nupkg.sha512"
   ],
   "logs": []
 }

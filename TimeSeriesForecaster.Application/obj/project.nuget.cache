@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "Kxfr5tE0XEkct0sVDzoULBCXJRjTNjKjC5zbZsclt6PCDYBMi3xm1hxS4tLefSyc0e2+jDkPgVCShK3kdnvgPQ==",
+  "dgSpecHash": "juxcNuRgHQM=",
   "success": true,
   "projectFilePath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Application/TimeSeriesForecaster.Application.csproj",
   "expectedPackageFiles": [
@@ -30,7 +30,34 @@
     "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.tokens/7.0.2/microsoft.identitymodel.tokens.7.0.2.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/newtonsoft.json/11.0.1/newtonsoft.json.11.0.1.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/system.identitymodel.tokens.jwt/7.0.2/system.identitymodel.tokens.jwt.7.0.2.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/system.valuetuple/4.5.0/system.valuetuple.4.5.0.nupkg.sha512"
+    "/Users/gulnihalvurat/.nuget/packages/system.valuetuple/4.5.0/system.valuetuple.4.5.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.netcore.app.ref/7.0.20/microsoft.netcore.app.ref.7.0.20.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.aspnetcore.app.ref/7.0.20/microsoft.aspnetcore.app.ref.7.0.20.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "'AutoMapper' 7.0.1 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-rvv3-g6hj-g44x güvenlik açığı var",
+      "projectPath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Application/TimeSeriesForecaster.Application.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Application/TimeSeriesForecaster.Application.csproj",
+      "libraryId": "AutoMapper",
+      "targetGraphs": [
+        "net7.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "'System.IdentityModel.Tokens.Jwt' 7.0.2 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-59j7-ghrg-fj52 güvenlik açığı var",
+      "projectPath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Application/TimeSeriesForecaster.Application.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Application/TimeSeriesForecaster.Application.csproj",
+      "libraryId": "System.IdentityModel.Tokens.Jwt",
+      "targetGraphs": [
+        "net7.0"
+      ]
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "fdz6DXey/7Wuz4bVICz35diT1gM2lS5BfLzpfwwmEgXITnzumrNGojEFxKFQvNl3WEHd1qayYgGVZPRMULTdwQ==",
+  "dgSpecHash": "wdhQwb99ZTg=",
   "success": true,
   "projectFilePath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Domain/TimeSeriesForecaster.Domain.csproj",
   "expectedPackageFiles": [
@@ -14,7 +14,9 @@
     "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.logging/7.0.0/microsoft.extensions.logging.7.0.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.logging.abstractions/7.0.0/microsoft.extensions.logging.abstractions.7.0.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.options/7.0.1/microsoft.extensions.options.7.0.1.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.primitives/7.0.0/microsoft.extensions.primitives.7.0.0.nupkg.sha512"
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.primitives/7.0.0/microsoft.extensions.primitives.7.0.0.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.netcore.app.ref/7.0.20/microsoft.netcore.app.ref.7.0.20.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.aspnetcore.app.ref/7.0.20/microsoft.aspnetcore.app.ref.7.0.20.nupkg.sha512"
   ],
   "logs": []
 }
