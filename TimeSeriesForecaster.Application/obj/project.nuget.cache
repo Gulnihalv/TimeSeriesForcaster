@@ -1,62 +1,33 @@
 {
   "version": 2,
-  "dgSpecHash": "juxcNuRgHQM=",
+  "dgSpecHash": "ppg4tljYfg4=",
   "success": true,
   "projectFilePath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Application/TimeSeriesForecaster.Application.csproj",
   "expectedPackageFiles": [
-    "/Users/gulnihalvurat/.nuget/packages/automapper/7.0.1/automapper.7.0.1.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/automapper/14.0.0/automapper.14.0.0.nupkg.sha512",
     "/Users/gulnihalvurat/.nuget/packages/csvhelper/33.1.0/csvhelper.33.1.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/hangfire.aspnetcore/1.8.21/hangfire.aspnetcore.1.8.21.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/hangfire.core/1.8.21/hangfire.core.1.8.21.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/hangfire.netcore/1.8.21/hangfire.netcore.1.8.21.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.aspnetcore.cryptography.internal/7.0.20/microsoft.aspnetcore.cryptography.internal.7.0.20.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.aspnetcore.cryptography.keyderivation/7.0.20/microsoft.aspnetcore.cryptography.keyderivation.7.0.20.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.csharp/4.7.0/microsoft.csharp.4.7.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.caching.abstractions/7.0.0/microsoft.extensions.caching.abstractions.7.0.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.configuration.abstractions/3.0.0/microsoft.extensions.configuration.abstractions.3.0.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.dependencyinjection/7.0.0/microsoft.extensions.dependencyinjection.7.0.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/7.0.0/microsoft.extensions.dependencyinjection.abstractions.7.0.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.fileproviders.abstractions/3.0.0/microsoft.extensions.fileproviders.abstractions.3.0.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.hosting.abstractions/3.0.0/microsoft.extensions.hosting.abstractions.3.0.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.identity.core/7.0.20/microsoft.extensions.identity.core.7.0.20.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.identity.stores/7.0.20/microsoft.extensions.identity.stores.7.0.20.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.logging/7.0.0/microsoft.extensions.logging.7.0.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.logging.abstractions/7.0.0/microsoft.extensions.logging.abstractions.7.0.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.options/7.0.1/microsoft.extensions.options.7.0.1.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.extensions.primitives/7.0.0/microsoft.extensions.primitives.7.0.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.abstractions/7.0.2/microsoft.identitymodel.abstractions.7.0.2.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.jsonwebtokens/7.0.2/microsoft.identitymodel.jsonwebtokens.7.0.2.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.logging/7.0.2/microsoft.identitymodel.logging.7.0.2.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.tokens/7.0.2/microsoft.identitymodel.tokens.7.0.2.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/newtonsoft.json/11.0.1/newtonsoft.json.11.0.1.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/system.identitymodel.tokens.jwt/7.0.2/system.identitymodel.tokens.jwt.7.0.2.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/system.valuetuple/4.5.0/system.valuetuple.4.5.0.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.netcore.app.ref/7.0.20/microsoft.netcore.app.ref.7.0.20.nupkg.sha512",
-    "/Users/gulnihalvurat/.nuget/packages/microsoft.aspnetcore.app.ref/7.0.20/microsoft.aspnetcore.app.ref.7.0.20.nupkg.sha512"
+    "/Users/gulnihalvurat/.nuget/packages/hangfire.aspnetcore/1.8.23/hangfire.aspnetcore.1.8.23.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/hangfire.core/1.8.23/hangfire.core.1.8.23.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/hangfire.netcore/1.8.23/hangfire.netcore.1.8.23.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.bcl.cryptography/10.0.2/microsoft.bcl.cryptography.10.0.2.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.abstractions/8.19.1/microsoft.identitymodel.abstractions.8.19.1.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.jsonwebtokens/8.19.1/microsoft.identitymodel.jsonwebtokens.8.19.1.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.logging/8.19.1/microsoft.identitymodel.logging.8.19.1.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/microsoft.identitymodel.tokens/8.19.1/microsoft.identitymodel.tokens.8.19.1.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg.sha512",
+    "/Users/gulnihalvurat/.nuget/packages/system.identitymodel.tokens.jwt/8.19.1/system.identitymodel.tokens.jwt.8.19.1.nupkg.sha512"
   ],
   "logs": [
     {
       "code": "NU1903",
       "level": "Warning",
-      "message": "'AutoMapper' 7.0.1 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-rvv3-g6hj-g44x güvenlik açığı var",
+      "message": "'AutoMapper' 14.0.0 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-rvv3-g6hj-g44x güvenlik açığı var",
       "projectPath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Application/TimeSeriesForecaster.Application.csproj",
       "warningLevel": 1,
       "filePath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Application/TimeSeriesForecaster.Application.csproj",
       "libraryId": "AutoMapper",
       "targetGraphs": [
-        "net7.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "message": "'System.IdentityModel.Tokens.Jwt' 7.0.2 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-59j7-ghrg-fj52 güvenlik açığı var",
-      "projectPath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Application/TimeSeriesForecaster.Application.csproj",
-      "warningLevel": 1,
-      "filePath": "/Users/gulnihalvurat/Documents/Yazılım/TimeSeriesForecaster/TimeSeriesForecaster.Application/TimeSeriesForecaster.Application.csproj",
-      "libraryId": "System.IdentityModel.Tokens.Jwt",
-      "targetGraphs": [
-        "net7.0"
+        "net10.0"
       ]
     }
   ]

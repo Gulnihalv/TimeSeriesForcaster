@@ -24,7 +24,7 @@ public class ModelRepository: IModelRepository
             : _context.Models.AsNoTracking();
 
         return await query
-            .Where(m => m.DatasetId == datasetId && (m.Status == ModelStatus.Created || m.Status == ModelStatus.Training))
+            .Where(m => m.DatasetId == datasetId && (m.Status == ModelStatus.Queued || m.Status == ModelStatus.Training))
             .FirstOrDefaultAsync();
     }
 

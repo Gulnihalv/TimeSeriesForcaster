@@ -1,17 +1,12 @@
-using AutoMapper;
 using Hangfire;
-using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using TimeSeriesForecaster.Application.Configuration;
-using TimeSeriesForecaster.Application.Contracts.Application;
-using TimeSeriesForecaster.Application.Contracts.Persistence;
-using TimeSeriesForecaster.Application.Services;
 using TimeSeriesForecaster.Domain.Entities;
 using TimeSeriesForecaster.Infrastructure.Persistence;
-using TimeSeriesForecaster.Infrastructure.Repositories;
+using TimeSeriesForecaster.WebAPI.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,25 +63,11 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Hangfire
-builder.Services.AddHangfire(config =>
-    config.UsePostgreSqlStorage(c =>
-        c.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"))));
-builder.Services.AddHangfireServer();
-builder.Services.AddHttpClient();
-
-//  otomatik kayıt yapan extension metodunu yazıcam ama şimdilik manuel ekliyoruz
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IProjectService, ProjectService>();
-builder.Services.AddScoped<IDatasetService, DatasetService>();
-builder.Services.AddScoped<IModelService, ModelService>();
-builder.Services.AddAutoMapper(typeof(TimeSeriesForecaster.Application.Mappings.MappingProfile));
-// Buraya diğer repository ve servislerin kayıtları da geliyo
-
-builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
-builder.Services.AddScoped<IDatasetRepository, DatasetRepository>();
-builder.Services.AddScoped<IModelRepository, ModelRepository>();
+// Hangfire, Application ve Infrastructure katmanı kayıtları
+builder.Services.AddHangfireServices(builder.Configuration);
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices();
+builder.Services.AddExternalServiceClients(builder.Configuration);
 
 // Controller ve Swagger servisleri
 builder.Services.AddControllers();

@@ -67,7 +67,7 @@ public class PredictionRepository : IPredictionRepository
     {
         return await _context.Predictions
             .AsNoTracking()
-            .Where(p => p.ModelId == modelId && p.ActualValue != 0) // ActualValue 0 değilse, yani gerçek değer varsa
+            .Where(p => p.ModelId == modelId && p.ActualValue.HasValue) // gerçek değer set edilmişse
             .ToListAsync();
     }
 

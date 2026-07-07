@@ -1,5 +1,7 @@
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
+using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.Contracts.Persistence;
 
@@ -11,13 +13,15 @@ public class ModelProcessingService : IModelProcessingService
     private readonly IDataPointRepository _dataPointRepository;
     private readonly IModelRepository _modelRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly MlServiceSettings _mlServiceSettings;
 
-    public ModelProcessingService(IHttpClientFactory httpClientFactory, IDataPointRepository dataPointRepository, IModelRepository modelRepository, IUnitOfWork unitOfWork)
+    public ModelProcessingService(IHttpClientFactory httpClientFactory, IDataPointRepository dataPointRepository, IModelRepository modelRepository, IUnitOfWork unitOfWork, IOptions<MlServiceSettings> mlServiceSettings)
     {
         _httpClientFactory = httpClientFactory;
         _dataPointRepository = dataPointRepository;
         _modelRepository = modelRepository;
         _unitOfWork = unitOfWork;
+        _mlServiceSettings = mlServiceSettings.Value;
     }
 
     public async Task ProcessModelAsync(int modelId, CancellationToken cancellationToken = default)
@@ -45,7 +49,7 @@ public class ModelProcessingService : IModelProcessingService
     
             var httpClient = _httpClientFactory.CreateClient();
             var stringContent = new StringContent(JsonSerializer.Serialize(trainingData), Encoding.UTF8, "application/json");
-            var httpResponse = await httpClient.PostAsync($"http://localhost:8000/train/{model.Algorithm!.ToLower()}", stringContent);
+            var httpResponse = await httpClient.PostAsync($"{_mlServiceSettings.BaseUrl}/train/{model.Algorithm!.ToLower()}", stringContent);
             if (!httpResponse.IsSuccessStatusCode)
             {
                 throw new Exception("Model eğitimi sırasında Python API'ında bir hata oluştu.");

@@ -9,7 +9,7 @@ public class Prediction
     public decimal PredictedValue { get; set; }
     public decimal ConfidenceLower { get; set; }
     public decimal ConfidenceUpper { get; set; }
-    public decimal ActualValue { get; set; }
+    public decimal? ActualValue { get; set; } // Gelecek tarihli tahminlerde henüz gerçekleşmediği için null olabilir.
     public bool IsAnomaly { get; set; }
     public DateTime CreatedAt { get; set; }
 }

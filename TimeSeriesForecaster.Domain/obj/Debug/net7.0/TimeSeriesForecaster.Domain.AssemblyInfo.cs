@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TimeSeriesForecaster.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+40d17da5003dd2ea93e410ec02e0c86b1b3b5d6f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+73629be2e4270dd8e99254f43671f61b4cd34ed0")]
 [assembly: System.Reflection.AssemblyProductAttribute("TimeSeriesForecaster.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TimeSeriesForecaster.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
