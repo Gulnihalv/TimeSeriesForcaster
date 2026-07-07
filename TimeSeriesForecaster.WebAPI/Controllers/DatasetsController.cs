@@ -29,7 +29,7 @@ public class DatasetsController : ControllerBase
         var result = await _datasetService.CreateDatasetFromUploadAsync(projectId, userId.Value, name, file, dateColumnName, targetColumnName);
         if (result == null)
         {
-            return Forbid("Yetkin Yok!");
+            return StatusCode(StatusCodes.Status403Forbidden, "Yetkin Yok!");
         }
 
         return CreatedAtAction(nameof(GetDatasetById), new { id = result.Id }, result);

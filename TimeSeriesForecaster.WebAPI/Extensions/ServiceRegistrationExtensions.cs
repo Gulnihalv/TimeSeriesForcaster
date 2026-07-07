@@ -25,8 +25,9 @@ public static class ServiceRegistrationExtensions
         // gerçekten çalıştığı anda, Enqueue anında değil) hata fırlatır.
         services.AddScoped<IDataProcessingService, DataProcessingService>();
         services.AddScoped<IModelProcessingService, ModelProcessingService>();
+        services.AddScoped<IForecastingService, ForecastingService>();
 
-        services.AddAutoMapper(typeof(TimeSeriesForecaster.Application.Mappings.MappingProfile));
+        services.AddAutoMapper(cfg => { }, typeof(TimeSeriesForecaster.Application.Mappings.MappingProfile));
 
         return services;
     }

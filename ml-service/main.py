@@ -22,6 +22,30 @@ def trainModel(data: List[TrainingData]):
     
     trainingData = [datapoint.model_dump() for datapoint in data]
     df = pd.DataFrame(trainingData)
+    df['ds'] = pd.to_datetime(df['ds'])
+    df = df.sort_values('ds').reset_index(drop=True)
+
+    # Holdout tabanlı metrik hesaplama: yeterli veri varsa son ~%15'i test için ayır.
+    # Az veri noktalı (özellikle demo/ilk test) senaryolarında holdout yapmak anlamsız/kırılgan
+    # olacağından minimum 10 nokta şartı koyuyoruz; altındaysa metrics null döner.
+    metrics = None
+    n = len(df)
+    if n >= 10:
+        holdout_size = max(1, int(n * 0.15))
+        train_df = df.iloc[:-holdout_size]
+        test_df = df.iloc[-holdout_size:]
+
+        holdout_model = Prophet()
+        holdout_model.fit(train_df)
+
+        holdout_forecast = holdout_model.predict(test_df[['ds']])
+
+        errors = holdout_forecast['yhat'].values - test_df['y'].values
+        mae = float(abs(errors).mean())
+        rmse = float((errors ** 2).mean() ** 0.5)
+        metrics = {"mae": mae, "rmse": rmse}
+
+    # Üretim modeli: metrikler ne olursa olsun TÜM veriyle eğitilir (holdout sadece ölçüm içindi)
     prophet = Prophet()
     prophet.fit(df)
 
@@ -34,7 +58,7 @@ def trainModel(data: List[TrainingData]):
     with open(model_path, 'w') as fout:
         fout.write(model_to_json(prophet)) 
 
-    return { "success": True, "model_path": model_path}
+    return { "success": True, "model_path": model_path, "metrics": metrics }
 
 @app.post("/predict/prophet")
 def predictModel(request: PredictRequest):

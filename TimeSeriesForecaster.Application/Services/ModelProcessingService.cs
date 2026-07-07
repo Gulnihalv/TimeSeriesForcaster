@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.Contracts.Persistence;
+using TimeSeriesForecaster.Domain.Entities;
 
 namespace TimeSeriesForecaster.Application.Services;
 
@@ -12,14 +13,16 @@ public class ModelProcessingService : IModelProcessingService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IDataPointRepository _dataPointRepository;
     private readonly IModelRepository _modelRepository;
+    private readonly IModelMetricRepository _modelMetricRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly MlServiceSettings _mlServiceSettings;
 
-    public ModelProcessingService(IHttpClientFactory httpClientFactory, IDataPointRepository dataPointRepository, IModelRepository modelRepository, IUnitOfWork unitOfWork, IOptions<MlServiceSettings> mlServiceSettings)
+    public ModelProcessingService(IHttpClientFactory httpClientFactory, IDataPointRepository dataPointRepository, IModelRepository modelRepository, IModelMetricRepository modelMetricRepository, IUnitOfWork unitOfWork, IOptions<MlServiceSettings> mlServiceSettings)
     {
         _httpClientFactory = httpClientFactory;
         _dataPointRepository = dataPointRepository;
         _modelRepository = modelRepository;
+        _modelMetricRepository = modelMetricRepository;
         _unitOfWork = unitOfWork;
         _mlServiceSettings = mlServiceSettings.Value;
     }
@@ -69,6 +72,32 @@ public class ModelProcessingService : IModelProcessingService
             model.ModelFilePath = modelPath;
             model.ErrorMessage = null;
 
+            // Holdout metrikleri varsa (yeterli veri noktası olduğunda Python tarafı hesaplıyor) kaydet.
+            // Az veri noktalı durumlarda Python "metrics": null döner, bu durumda hiç metrik yazmıyoruz.
+            if (trainingResult?.Metrics != null)
+            {
+                var calculatedAt = DateTime.UtcNow;
+                var metricEntities = new List<ModelMetric>
+                {
+                    new ModelMetric
+                    {
+                        ModelId = model.Id,
+                        MetricName = MetricName.MAE,
+                        MetricValue = (decimal)trainingResult.Metrics.Mae,
+                        CalculatedAt = calculatedAt
+                    },
+                    new ModelMetric
+                    {
+                        ModelId = model.Id,
+                        MetricName = MetricName.RMSE,
+                        MetricValue = (decimal)trainingResult.Metrics.Rmse,
+                        CalculatedAt = calculatedAt
+                    }
+                };
+
+                await _modelMetricRepository.CreateMetricsAsync(metricEntities);
+            }
+
         }catch (Exception ex)
         {
             model.Status = ModelStatus.Failed;
@@ -84,5 +113,12 @@ public class ModelProcessingService : IModelProcessingService
     private class PythonTrainingResponse
     {
         public string? ModelPath { get; set; }
+        public PythonMetrics? Metrics { get; set; }
+    }
+
+    private class PythonMetrics
+    {
+        public double Mae { get; set; }
+        public double Rmse { get; set; }
     }
 }

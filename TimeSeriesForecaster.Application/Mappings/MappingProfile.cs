@@ -12,5 +12,9 @@ public class MappingProfile : Profile
         CreateMap<ProjectForCreationDto, Project>();
         CreateMap<Dataset, DatasetDto>();
         CreateMap<Model, ModelDto>();
+        CreateMap<Prediction, PredictionDto>();
+        CreateMap<ModelMetric, ModelMetricDto>();
+        CreateMap<Model, ModelDetailDto>()
+            .ForMember(dest => dest.Metrics, opt => opt.MapFrom(src => src.ModelMetrics));
     }
 }

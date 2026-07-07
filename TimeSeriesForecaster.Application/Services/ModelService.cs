@@ -108,4 +108,42 @@ public class ModelService : IModelService
         return modelDto;
     }
 
+    public async Task<ModelDetailDto?> GetModelDetailByIdAsync(int modelId, int userId)
+    {
+        var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
+        if (!userOwnsModel)
+        {
+            return null;
+        }
+
+        var model = await _modelRepository.GetModelWithMetricsAsync(id: modelId, trackChanges: false);
+        if (model == null)
+        {
+            return null;
+        }
+
+        var modelDetailDto = _mapper.Map<ModelDetailDto>(model);
+        return modelDetailDto;
+    }
+
+    public async Task<bool> GenerateForecastAsync(int modelId, int userId, int horizon)
+    {
+        var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
+        if (!userOwnsModel)
+        {
+            throw new UnauthorizedAccessException("Bu model üzerinde işlem yapılamaz.");
+        }
+
+        var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: false);
+        if (model == null || model.Status != ModelStatus.Completed)
+        {
+            throw new InvalidOperationException("Tahmin üretebilmek için modelin eğitiminin tamamlanmış olması gerekir.");
+        }
+
+        _backgroundJobClient.Enqueue<IForecastingService>(service =>
+            service.ProcessForecastAsync(modelId, horizon, CancellationToken.None));
+
+        return true;
+    }
+
 }
