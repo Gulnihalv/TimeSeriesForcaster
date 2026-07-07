@@ -75,6 +75,7 @@ public class DataProcessingService : IDataProcessingService
             dataset.IsProcessed = false;
             dataset.ErrorMessage = "Dosyadan veri okunamadı veya sütunlar yanlış.";
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return; // veri yoksa burada dur, aşağıdaki IsProcessed=true ile üzerine yazılmasın
         }
 
         await _dataPointRepository.CreateDataPointsBulkAsync(dataPoints);

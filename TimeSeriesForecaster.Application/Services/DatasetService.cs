@@ -72,6 +72,8 @@ public class DatasetService : IDatasetService
             Name = name,
             OriginalFileName = file.FileName,
             FilePath = storagePath,
+            DateColumn = dateColumnName,
+            TargetColumn = targetColumnName,
             RecordCount = 0,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
