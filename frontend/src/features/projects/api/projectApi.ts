@@ -23,3 +23,7 @@ export const createProject = async (data: CreateProjectRequest): Promise<Project
   const response = await apiClient.post<Project>('/projects', data);
   return response.data;
 };
+
+export const deleteProject = async (projectId: number): Promise<void> => {
+  await apiClient.delete(`/projects/${projectId}`);
+};

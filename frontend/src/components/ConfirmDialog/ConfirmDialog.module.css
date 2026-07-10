@@ -1,0 +1,19 @@
+.message {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-medium);
+}
+
+.error {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-text);
+  padding: var(--spacing-small) var(--spacing-medium);
+  border-radius: var(--border-radius-medium);
+  margin-bottom: var(--spacing-medium);
+  font-size: 0.875rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-small);
+}

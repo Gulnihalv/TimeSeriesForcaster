@@ -57,3 +57,12 @@
 .white:hover {
   background-color: #f1f1f6;
 }
+
+.danger {
+  background-color: var(--color-danger-text);
+  box-shadow: 0 6px 16px rgba(194, 49, 100, 0.22);
+}
+
+.danger:hover {
+  background-color: #a8285a;
+}

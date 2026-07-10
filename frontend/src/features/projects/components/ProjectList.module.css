@@ -18,6 +18,13 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
   margin-bottom: var(--spacing-medium);
 }
 
@@ -58,4 +65,23 @@
   background-color: var(--color-danger-bg);
   padding: 10px;
   border-radius: var(--border-radius-medium);
+}
+
+.deleteButton {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--border-radius-small);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.deleteButton:hover {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-text);
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './Button.module.css';
 
-type ButtonVariant = 'primary' | 'dark' | 'ghost' | 'white';
+type ButtonVariant = 'primary' | 'dark' | 'ghost' | 'white' | 'danger';
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
@@ -12,6 +12,7 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
   dark: 'dark',
   ghost: 'ghost',
   white: 'white',
+  danger: 'danger',
 };
 
 const Button: React.FC<ButtonProps> = ({ children, className, variant = 'primary', ...props }) => {

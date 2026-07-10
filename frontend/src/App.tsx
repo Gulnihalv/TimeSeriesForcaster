@@ -10,7 +10,6 @@ import ProtectedRoute from './router/ProtectedRoute';
 import GuestRoute from './router/GuestRoute';
 import MainLayout from './components/Layout/MainLayout';
 import DatasetDetailPage from './pages/DatasetDetailPage';
-import './App.css';
 
 
 function App() {

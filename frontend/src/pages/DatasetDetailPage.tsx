@@ -26,6 +26,10 @@ const DatasetDetailPage = () => {
     setModelListKey((prev) => prev + 1);
   };
 
+  const handleModelDeleted = (deletedModelId: number) => {
+    setSelectedModelId((current) => (current === deletedModelId ? null : current));
+  };
+
   if (id === 0) {
     return <div>Geçersiz Dataset ID'si</div>;
   }
@@ -62,6 +66,7 @@ const DatasetDetailPage = () => {
             datasetId={id}
             selectedModelId={selectedModelId}
             onSelectModel={setSelectedModelId}
+            onModelDeleted={handleModelDeleted}
           />
         </Card>
       </div>

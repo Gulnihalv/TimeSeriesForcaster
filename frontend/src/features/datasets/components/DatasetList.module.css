@@ -15,9 +15,34 @@
   margin: 0;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-small);
+}
+
 .error {
   color: var(--color-danger-text);
   background-color: var(--color-danger-bg);
   padding: 10px;
   border-radius: var(--border-radius-medium);
+}
+
+.deleteButton {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--border-radius-small);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.deleteButton:hover {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-text);
 }

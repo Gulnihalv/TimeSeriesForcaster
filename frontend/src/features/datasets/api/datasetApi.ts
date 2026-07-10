@@ -53,3 +53,7 @@ export const createDataset = async (
 
   return response.data;
 };
+
+export const deleteDataset = async (datasetId: number): Promise<void> => {
+  await apiClient.delete(`/datasets/${datasetId}`);
+};
