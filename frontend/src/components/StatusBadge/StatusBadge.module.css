@@ -1,0 +1,29 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.queued {
+  background-color: var(--color-status-queued-bg);
+  color: var(--color-status-queued-text);
+}
+
+.training {
+  background-color: var(--color-status-training-bg);
+  color: var(--color-status-training-text);
+}
+
+.completed {
+  background-color: var(--color-status-completed-bg);
+  color: var(--color-status-completed-text);
+}
+
+.failed {
+  background-color: var(--color-status-failed-bg);
+  color: var(--color-status-failed-text);
+}

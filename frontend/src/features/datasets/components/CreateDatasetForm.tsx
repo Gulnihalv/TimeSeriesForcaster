@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Input from '../../../components/Input/Input';
 import Button from '../../../components/Button/Button';
 import { createDataset } from '../api/datasetApi';
+import { getErrorMessage } from '../../../api/errorUtils';
 import styles from './CreateDatasetForm.module.css';
 
 interface CreateDatasetFormProps {
@@ -12,6 +13,8 @@ interface CreateDatasetFormProps {
 const CreateDatasetForm: React.FC<CreateDatasetFormProps> = ({ projectId, onDatasetCreated }) => {
   const [name, setName] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [dateColumnName, setDateColumnName] = useState('');
+  const [targetColumnName, setTargetColumnName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,12 +36,13 @@ const CreateDatasetForm: React.FC<CreateDatasetFormProps> = ({ projectId, onData
     setError(null);
 
     try {
-      await createDataset(projectId, name, file);
+      await createDataset(projectId, name, file, dateColumnName, targetColumnName);
       setIsLoading(false);
       onDatasetCreated();
     } catch (err) {
       setIsLoading(false);
-      setError('Dataset yüklenemedi. Lütfen tekrar deneyin.');
+      // Backend artık anlamlı hatalar dönüyor (örn. "CSV dosyasında şu sütun(lar) bulunamadı: ...")
+      setError(getErrorMessage(err, 'Dataset yüklenemedi. Lütfen tekrar deneyin.'));
       console.error('Dataset yükleme hatası:', err);
     }
   };
@@ -66,6 +70,30 @@ const CreateDatasetForm: React.FC<CreateDatasetFormProps> = ({ projectId, onData
           id="file"
           onChange={handleFileChange}
           accept=".csv" // Sadece .csv dosyalarına izin ver
+          required
+        />
+      </div>
+
+      <div className={styles.formGroup}>
+        <label htmlFor="dateColumnName">Tarih Sütunu Adı</label>
+        <Input
+          type="text"
+          id="dateColumnName"
+          value={dateColumnName}
+          onChange={(e) => setDateColumnName(e.target.value)}
+          placeholder="örn. tarih"
+          required
+        />
+      </div>
+
+      <div className={styles.formGroup}>
+        <label htmlFor="targetColumnName">Hedef Değer Sütunu Adı</label>
+        <Input
+          type="text"
+          id="targetColumnName"
+          value={targetColumnName}
+          onChange={(e) => setTargetColumnName(e.target.value)}
+          placeholder="örn. satis"
           required
         />
       </div>

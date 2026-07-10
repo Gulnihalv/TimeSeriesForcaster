@@ -1,0 +1,18 @@
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-large);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-small);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}

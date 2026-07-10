@@ -1,0 +1,77 @@
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-medium);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-heading);
+}
+
+.subtitle {
+  margin: 4px 0 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  text-transform: capitalize;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: var(--spacing-small);
+  margin-top: var(--spacing-large);
+  max-width: 320px;
+}
+
+.metricCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background-color: var(--color-page-bg);
+  border-radius: var(--border-radius-medium);
+  padding: var(--spacing-small) var(--spacing-medium);
+}
+
+.metricLabel {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.metricValue {
+  font-size: var(--font-size-heading);
+  font-weight: 600;
+}
+
+.chartSection {
+  margin-top: var(--spacing-large);
+}
+
+.forecastForm {
+  margin-top: var(--spacing-large);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--spacing-medium);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-small);
+}
+
+.horizonLabel {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.row {
+  display: flex;
+  gap: var(--spacing-small);
+  align-items: center;
+}
+
+.error {
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-bg);
+  padding: 10px;
+  border-radius: var(--border-radius-medium);
+  margin-top: var(--spacing-medium);
+}

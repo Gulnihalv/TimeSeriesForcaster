@@ -1,0 +1,63 @@
+.wrapper {
+  width: 100%;
+}
+
+.empty {
+  color: var(--color-text-secondary);
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+}
+
+.band {
+  fill: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  stroke: none;
+}
+
+.predictedLine {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 2;
+}
+
+.actualLine {
+  fill: none;
+  stroke: var(--color-status-completed-text);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+.legend {
+  display: flex;
+  gap: var(--spacing-medium);
+  margin-top: var(--spacing-small);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.predictedSwatch {
+  background-color: var(--color-primary);
+}
+
+.actualSwatch {
+  background-color: var(--color-status-completed-text);
+}
+
+.bandSwatch {
+  background-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+}

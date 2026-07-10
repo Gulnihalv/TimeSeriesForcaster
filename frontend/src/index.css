@@ -1,17 +1,59 @@
 :root {
-  --color-primary: #3f55a7;
+  /* Marka */
+  --color-primary: #3F55A7;
   --color-primary-hover: #535bf2;
-  --color-text: #333;
-  --color-border: #ccc;
-  --color-surface: #ffffff; /* Kart arka planı */
+
+  /* Sidebar (Sidebar.module.css bu tonları artık buradan alır) */
+  --color-sidebar-bg: #343D61;
+  --color-sidebar-text: #94a3b8;
+  --color-sidebar-text-hover: #f1f5f9;
+
+  /* Metin */
+  --color-text: #1e2233;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+
+  /* Yüzey / kenarlık */
+  --color-surface: #ffffff;      /* Kart arka planı */
+  --color-page-bg: #f8f9fe;      /* Sayfa arka planı */
+  --color-border: #e2e4ee;
+
+  /* Durum renkleri — ModelStatus (Queued/Training/Completed/Failed) ve
+     dataset isProcessed durumları buradan renk alır, komponentler hex yazmaz. */
+  --color-status-queued-bg: #eef0f7;
+  --color-status-queued-text: #4b5168;
+
+  --color-status-training-bg: #e6ecfb;
+  --color-status-training-text: #3f55a7;
+
+  --color-status-completed-bg: #e3f6ea;
+  --color-status-completed-text: #1f8a4c;
+
+  --color-status-failed-bg: #fdeaea;
+  --color-status-failed-text: #c62828;
+
+  /* Genel amaçlı hata/başarı (formlarda kullanılır) */
+  --color-danger-bg: #fdeaea;
+  --color-danger-text: #c62828;
+  --color-success-bg: #e3f6ea;
+  --color-success-text: #1f8a4c;
 
   /* Ölçüler */
+  --spacing-small: 8px;
   --spacing-medium: 16px;
+  --spacing-large: 24px;
+  --border-radius-small: 6px;
   --border-radius-medium: 8px;
+  --border-radius-large: 16px;
+
+  /* Tipografi ölçeği */
+  --font-size-caption: 0.8125rem;  /* 13px */
+  --font-size-body: 1rem;          /* 16px */
+  --font-size-heading: 1.25rem;    /* 20px */
+  --font-size-title: 1.75rem;      /* 28px */
 
   /* Gölgeler */
   --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.05);
-  --color-primary: #3F55A7;
 }
 
 a {
@@ -78,5 +120,6 @@ html,
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
-  background-color: #f8f9fe;
+  background-color: var(--color-page-bg);
+  color: var(--color-text);
 }

@@ -10,8 +10,8 @@
 }
 
 .error {
-  color: #D8000C;
-  background-color: #FFD2D2;
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-bg);
   padding: 10px;
   border-radius: var(--border-radius-medium);
   margin-bottom: var(--spacing-medium);

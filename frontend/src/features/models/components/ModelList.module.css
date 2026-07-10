@@ -1,0 +1,42 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-small);
+}
+
+.modelCard {
+  border: 2px solid transparent;
+}
+
+.selected {
+  border-color: var(--color-primary);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-small);
+}
+
+.name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.meta {
+  margin: 2px 0 0 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.empty {
+  color: var(--color-text-secondary);
+}
+
+.error {
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-bg);
+  padding: 10px;
+  border-radius: var(--border-radius-medium);
+}

@@ -1,13 +1,21 @@
 .listContainer {
-    margin: 0px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium);
 }
 
-.projectCardWrapper {
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.projectCard h3 {
+  margin: 0 0 4px 0;
 }
 
-.projectCardWrapper:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-medium);
+.projectCard p {
+  margin: 0 0 8px 0;
+  color: var(--color-text-secondary);
+}
+
+.error {
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-bg);
+  padding: 10px;
+  border-radius: var(--border-radius-medium);
 }

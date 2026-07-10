@@ -3,7 +3,7 @@
   height: calc(100vh - 40px);
   position: sticky;
   top: 20px;
-  background-color: #343D61;
+  background-color: var(--color-sidebar-bg);
   color: #e2e8f0;
   display: flex;
   flex-direction: column;
@@ -36,7 +36,7 @@
   padding: 16px;
   border-radius: 8px;
   text-decoration: none;
-  color: #94a3b8;
+  color: var(--color-sidebar-text);
   font-weight: 500;
   transition: all 0.2s ease;
   position: relative;
@@ -44,15 +44,15 @@
 }
 
 .navLink:hover {
-  color: #f1f5f9;
+  color: var(--color-sidebar-text-hover);
 }
 
 .active {
-  color: #343D61;
+  color: var(--color-sidebar-bg);
 }
 
 .active:hover {
-  color: #343D61;
+  color: var(--color-sidebar-bg);
 }
 
 .horiSelector {
@@ -62,7 +62,7 @@
   top: 0;
   width: 100%;
   height: 0;
-  background-color: #f8f9fe;
+  background-color: var(--color-page-bg);
   margin-right: -16px; 
   border-top-left-radius: 12px;
   border-bottom-left-radius: 12px;
@@ -77,7 +77,7 @@
   position: absolute;
   width: 35%;
   height: 50px;
-  background-color: #f8f9fe;
+  background-color: var(--color-page-bg);
   left: 55px;
 }
 
@@ -95,7 +95,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #343D61;
+  background-color: var(--color-sidebar-bg);
   right: -20px;
 }
 
@@ -111,7 +111,7 @@
 .logoutButton {
   background: none;
   border: 1px solid #334155;
-  color: #94a3b8;
+  color: var(--color-sidebar-text);
   width: 100%;
   padding: 16px;
   border-radius: 8px;
@@ -126,5 +126,5 @@
 
 .logoutButton:hover {
   background-color: #334155;
-  color: #f1f5f9;
+  color: var(--color-sidebar-text-hover);
 }

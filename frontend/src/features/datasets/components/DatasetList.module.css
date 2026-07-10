@@ -1,13 +1,23 @@
 .listContainer {
-    margin: 0px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium);
 }
 
-.projectCardWrapper {
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.datasetCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-small);
 }
 
-.projectCardWrapper:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-medium);
+.datasetCardHeader h3 {
+  margin: 0;
+}
+
+.error {
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-bg);
+  padding: 10px;
+  border-radius: var(--border-radius-medium);
 }

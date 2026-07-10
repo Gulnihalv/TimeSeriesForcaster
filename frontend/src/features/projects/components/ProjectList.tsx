@@ -1,32 +1,16 @@
-import { useState, useEffect } from 'react';
 import { getProjects, type Project } from '../api/projectApi';
 import Card from '../../../components/Card/Card';
 import styles from './ProjectList.module.css';
 import { useNavigate } from 'react-router-dom';
+import { useApiData } from '../../../hooks/useApiData';
 
 const ProjectList = () => {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: projects, isLoading, error } = useApiData<Project[]>(
+    getProjects,
+    [],
+    { fallbackErrorMessage: 'Projeler yüklenemedi.' }
+  );
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const data = await getProjects();
-        setProjects(data);
-        setIsLoading(false);
-      } catch (err) {
-        setError('Projeler yüklenemedi.');
-        setIsLoading(false);
-        console.error(err);
-      }
-    };
-
-    fetchProjects();
-  }, []);
 
   const handleCardClick = (projectId: number) => {
     navigate(`/projects/${projectId}`);
@@ -40,20 +24,19 @@ const ProjectList = () => {
   }
   return (
     <div className={styles.listContainer}>
-      {projects.length === 0 ? (
+      {!projects || projects.length === 0 ? (
         <p>Henüz hiç projeniz yok. Yeni bir tane oluşturun!</p>
       ) : (
         projects.map((project) => (
-          <Card 
+          <Card
             key={project.id}
+            interactive
             onClick={() => handleCardClick(project.id)}
-            className={styles.projectCardWrapper}
           >
             <div className={styles.projectCard}>
               <h3>{project.name}</h3>
               <p>{project.description || 'Açıklama yok'}</p>
               <small>Oluşturulma: {new Date(project.createdAt).toLocaleDateString()}</small>
-              {/* Sonra proje detayına gitme ekleneicek*/}
             </div>
           </Card>
         ))

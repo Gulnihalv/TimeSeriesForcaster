@@ -1,36 +1,22 @@
-import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { FC } from 'react';
 import { getDatasetsForProject, type Dataset } from '../api/datasetApi';
 import Card from '../../../components/Card/Card';
+import { ProcessingBadge } from '../../../components/StatusBadge/StatusBadge';
+import { useApiData } from '../../../hooks/useApiData';
 import styles from './DatasetList.module.css';
 
 interface DatasetListProps {
   projectId: number;
 }
 
-const DatasetList: React.FC<DatasetListProps> = ({ projectId }) => {
-  const [datasets, setDatasets] = useState<Dataset[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const DatasetList: FC<DatasetListProps> = ({ projectId }) => {
+  const { data: datasets, isLoading, error } = useApiData<Dataset[]>(
+    () => getDatasetsForProject(projectId),
+    [projectId],
+    { fallbackErrorMessage: 'Datasetler yüklenemedi.' }
+  );
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchDatasets = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const data = await getDatasetsForProject(projectId);
-        setDatasets(data);
-        setIsLoading(false);
-      } catch (err) {
-        setError('Datasetler yüklenemedi.');
-        setIsLoading(false);
-        console.error(err);
-      }
-    };
-
-    fetchDatasets();
-  }, [projectId]);
 
   const handleCardClick = (datasetId: number) => {
     navigate(`/datasets/${datasetId}`);
@@ -41,18 +27,20 @@ const DatasetList: React.FC<DatasetListProps> = ({ projectId }) => {
 
   return (
     <div className={styles.listContainer}>
-      {datasets.length === 0 ? (
+      {!datasets || datasets.length === 0 ? (
         <p>Bu projeye ait hiç dataset yok. Yeni bir tane yükleyin!</p>
       ) : (
         datasets.map((dataset) => (
-          <Card 
-            key={dataset.id} 
+          <Card
+            key={dataset.id}
+            interactive
             onClick={() => handleCardClick(dataset.id)}
-            className={styles.datasetCardWrapper}
           >
-            <h3>{dataset.name}</h3>
+            <div className={styles.datasetCardHeader}>
+              <h3>{dataset.name}</h3>
+              <ProcessingBadge isProcessed={dataset.isProcessed} hasError={!!dataset.errorMessage} />
+            </div>
             <p>Dosya Adı: {dataset.originalFileName}</p>
-            <p>Durum: {dataset.isProcessed ? 'İşlendi' : 'İşlenmedi'}</p>
             <small>Yüklenme: {new Date(dataset.createdAt).toLocaleString()}</small>
           </Card>
         ))
