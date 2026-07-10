@@ -65,4 +65,22 @@ public class DatasetsController : ControllerBase
         var results = await _datasetService.GetAllDatasetsForProjectAsync(projectId: projectId, userId: userId.Value);
         return Ok(results);
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteDataset(int id)
+    {
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized("User id bulunmadı");
+        }
+
+        var deleted = await _datasetService.DeleteDatasetAsync(id, userId.Value);
+        if (!deleted)
+        {
+            return NotFound("Dataset bulunamadı veya bu kullanıcıya ait değil.");
+        }
+
+        return NoContent();
+    }
 }

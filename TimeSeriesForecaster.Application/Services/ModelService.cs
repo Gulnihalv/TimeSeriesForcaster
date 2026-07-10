@@ -146,4 +146,25 @@ public class ModelService : IModelService
         return true;
     }
 
+    public async Task<bool> DeleteModelAsync(int modelId, int userId)
+    {
+        var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
+        if (!userOwnsModel)
+        {
+            return false;
+        }
+
+        var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: true);
+        if (model == null)
+        {
+            return false;
+        }
+
+        model.IsActive = false;
+        _modelRepository.UpdateModel(model);
+        await _unitOfWork.SaveChangesAsync();
+
+        return true;
+    }
+
 }

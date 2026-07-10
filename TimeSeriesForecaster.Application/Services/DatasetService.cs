@@ -78,7 +78,8 @@ public class DatasetService : IDatasetService
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             Status = ProcessingStatus.Queued,
-            IsProcessed = false
+            IsProcessed = false,
+            IsActive = true
         };
 
         _datasetRepository.CreateDataset(dataset: datasetEntity);
@@ -134,5 +135,27 @@ public class DatasetService : IDatasetService
 
         var datasetDto = _mapper.Map<DatasetDto>(dataset);
         return datasetDto;
+    }
+
+    public async Task<bool> DeleteDatasetAsync(int datasetId, int userId)
+    {
+        var userOwnsDataset = await _datasetRepository.UserOwnsDatasetAsync(datasetId: datasetId, userId: userId);
+        if (!userOwnsDataset)
+        {
+            return false;
+        }
+
+        var dataset = await _datasetRepository.GetDatasetByIdAsync(id: datasetId, trackChanges: true);
+        if (dataset == null)
+        {
+            return false;
+        }
+
+        dataset.IsActive = false;
+        dataset.UpdatedAt = DateTime.UtcNow;
+        _datasetRepository.UpdateDataset(dataset);
+        await _unitOfWork.SaveChangesAsync();
+
+        return true;
     }
 }

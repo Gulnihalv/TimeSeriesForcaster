@@ -73,4 +73,23 @@ public class ProjectsController : ControllerBase
 
         return CreatedAtAction(nameof(GetProjectById), new { id = result.Id }, result); 
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteProject(int id)
+    {
+        var userId = User.GetUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized("User id bulunmadı");
+        }
+
+        var deleted = await _projectService.DeleteProjectAsync(id, userId.Value);
+        if (!deleted)
+        {
+            return NotFound("Proje bulunamadı veya bu kullanıcıya ait değil.");
+        }
+
+        return NoContent();
+    }
 }

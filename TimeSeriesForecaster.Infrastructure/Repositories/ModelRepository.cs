@@ -43,7 +43,7 @@ public class ModelRepository: IModelRepository
             ? _context.Models
             : _context.Models.AsNoTracking();
 
-        return await query.FirstOrDefaultAsync(m => m.Id == id);
+        return await query.FirstOrDefaultAsync(m => m.Id == id && m.IsActive);
     }
 
     public async Task<IEnumerable<Model>> GetModelsByStatusAsync(ModelStatus status, bool trackChanges)
@@ -57,15 +57,20 @@ public class ModelRepository: IModelRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Model>> GetModelsForDatasetAsync(int datasetId, bool trackChanges)
+    public async Task<IEnumerable<Model>> GetModelsForDatasetAsync(int datasetId, bool trackChanges, bool includeInactive = false)
     {
         IQueryable<Model> query = trackChanges
             ? _context.Models
             : _context.Models.AsNoTracking();
 
-        return await query
-            .Where(m => m.DatasetId == datasetId)
-            .ToListAsync();
+        query = query.Where(m => m.DatasetId == datasetId);
+
+        if (!includeInactive)
+        {
+            query = query.Where(m => m.IsActive);
+        }
+
+        return await query.ToListAsync();
     }
 
     public async Task<IEnumerable<Model>> GetModelsForProjectAsync(int projectId, bool trackChanges)
@@ -88,7 +93,7 @@ public class ModelRepository: IModelRepository
         return await query
             .Include(m => m.ModelMetrics)
             .Include(m => m.Predictions!.OrderBy(p => p.PredictionDate))
-            .FirstOrDefaultAsync(m => m.Id == id);
+            .FirstOrDefaultAsync(m => m.Id == id && m.IsActive);
     }
 
     public async Task<bool> ModelExistsAsync(int id)
@@ -98,6 +103,6 @@ public class ModelRepository: IModelRepository
 
     public async Task<bool> UserOwnsModelAsync(int modelId, int userId)
     {
-        return await _context.Models.AnyAsync(m => m.Id == modelId && m.Project!.UserId == userId);
+        return await _context.Models.AnyAsync(m => m.Id == modelId && m.Project!.UserId == userId && m.IsActive);
     }
 }

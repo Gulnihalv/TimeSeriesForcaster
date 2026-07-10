@@ -21,7 +21,7 @@ public class ProjectService : IProjectService
 
     public async Task<IEnumerable<ProjectDto>> GetProjectsForUserAsync(int userId)
     {
-        var projects = await _projectRepository.GetAllProjectsForUserAsync(userId: userId, trackChanges: false, includeInactive: true); // Burası readonly bir method olduğunan trackchangesi false
+        var projects = await _projectRepository.GetAllProjectsForUserAsync(userId: userId, trackChanges: false, includeInactive: false); // Burası readonly bir method olduğunan trackchangesi false
 
         var projectsDto = _mapper.Map<IEnumerable<ProjectDto>>(projects);
         return projectsDto;
@@ -58,5 +58,27 @@ public class ProjectService : IProjectService
 
         var projectDto = _mapper.Map<ProjectDto>(project);
         return projectDto;
+    }
+
+    public async Task<bool> DeleteProjectAsync(int projectId, int userId)
+    {
+        var userOwnsProject = await _projectRepository.UserOwnsProjectAsync(projectId: projectId, userId: userId);
+        if (!userOwnsProject)
+        {
+            return false;
+        }
+
+        var project = await _projectRepository.GetProjectByIdAsync(id: projectId, trackChanges: true);
+        if (project == null)
+        {
+            return false;
+        }
+
+        project.IsActive = false;
+        project.UpdatedAt = DateTime.UtcNow;
+        _projectRepository.UpdateProject(project);
+        await _unitOfWork.SaveChangesAsync();
+
+        return true;
     }
 }

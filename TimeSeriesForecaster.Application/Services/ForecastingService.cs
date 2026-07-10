@@ -77,8 +77,13 @@ public class ForecastingService : IForecastingService
             CreatedAt = createdAt
         }).ToList();
 
-        await _predictionRepository.CreatePredictionsBulkAsync(newPredictions);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            await _predictionRepository.RemovePredictionsForModelAsync(modelId);
+            await _predictionRepository.CreatePredictionsBulkAsync(newPredictions);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return true;
+        }, cancellationToken);
     }
 
     private class PythonPredictResponse

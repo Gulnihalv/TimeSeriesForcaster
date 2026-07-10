@@ -23,4 +23,5 @@ public class Dataset
     public string? ErrorMessage { get; set; }
     public string? HangfireJobId { get; set; }
     public bool IsProcessed { get; set; }
+    public bool IsActive { get; set; }
 }

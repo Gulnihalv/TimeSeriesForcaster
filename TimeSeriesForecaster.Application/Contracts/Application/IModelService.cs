@@ -9,4 +9,5 @@ public interface IModelService
     Task<IEnumerable<ModelDto>> GetAllModelsForDatasetAsync(int datasetId, int userId);
     Task<ModelDto?> TrainModelAsync(int datasetId, int userId, string algorithm);
     Task<bool> GenerateForecastAsync(int modelId, int userId, int horizon);
+    Task<bool> DeleteModelAsync(int modelId, int userId);
 }

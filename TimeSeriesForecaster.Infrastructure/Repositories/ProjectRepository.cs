@@ -28,7 +28,7 @@ public class ProjectRepository : IProjectRepository
             query = query.AsNoTracking();
         }
 
-        return await query.FirstOrDefaultAsync(p => p.Id == id);
+        return await query.FirstOrDefaultAsync(p => p.Id == id && p.IsActive);
     }
 
     public async Task<IEnumerable<Project>> GetAllProjectsForUserAsync(int userId, bool trackChanges, bool includeInactive = false)
@@ -54,6 +54,6 @@ public class ProjectRepository : IProjectRepository
 
     public async Task<bool> UserOwnsProjectAsync(int projectId, int userId)
     {
-        return await _context.Projects.AnyAsync(p => p.Id == projectId && p.UserId == userId);
+        return await _context.Projects.AnyAsync(p => p.Id == projectId && p.UserId == userId && p.IsActive);
     }
 }

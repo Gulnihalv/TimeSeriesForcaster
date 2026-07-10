@@ -24,7 +24,7 @@ public class DatasetRepository : IDatasetRepository
         return await _context.Datasets.AnyAsync(d => d.Id == id);
     }
 
-    public async Task<IEnumerable<Dataset>> GetAllDatasetsForProjectAsync(int projectId, bool trackChanges, bool includeUnprocessed = true)
+    public async Task<IEnumerable<Dataset>> GetAllDatasetsForProjectAsync(int projectId, bool trackChanges, bool includeUnprocessed = true, bool includeInactive = false)
     {
         IQueryable<Dataset> query = trackChanges
             ? _context.Datasets
@@ -37,6 +37,11 @@ public class DatasetRepository : IDatasetRepository
             query = query.Where(d => d.IsProcessed);
         }
 
+        if (!includeInactive)
+        {
+            query = query.Where(d => d.IsActive);
+        }
+
         return await query.OrderBy(d => d.Name).ToListAsync();
     }
 
@@ -46,7 +51,7 @@ public class DatasetRepository : IDatasetRepository
             ? _context.Datasets
             : _context.Datasets.AsNoTracking();
 
-        return await query.FirstOrDefaultAsync(d => d.Id == id);
+        return await query.FirstOrDefaultAsync(d => d.Id == id && d.IsActive);
     }
 
     public async Task<int> GetDatasetRecordCountAsync(int id)
@@ -61,6 +66,6 @@ public class DatasetRepository : IDatasetRepository
 
     public async Task<bool> UserOwnsDatasetAsync(int datasetId, int userId)
     {
-        return await _context.Datasets.AnyAsync(d => d.Id == datasetId && d.Project!.UserId == userId);
+        return await _context.Datasets.AnyAsync(d => d.Id == datasetId && d.Project!.UserId == userId && d.IsActive);
     }
 }

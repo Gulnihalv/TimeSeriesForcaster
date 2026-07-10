@@ -6,7 +6,7 @@ public interface IModelRepository
 {
     Task<Model?> GetModelByIdAsync(int id, bool trackChanges);
     Task<IEnumerable<Model>> GetModelsForProjectAsync(int projectId, bool trackChanges);
-    Task<IEnumerable<Model>> GetModelsForDatasetAsync(int datasetId, bool trackChanges);
+    Task<IEnumerable<Model>> GetModelsForDatasetAsync(int datasetId, bool trackChanges, bool includeInactive = false);
     Task<IEnumerable<Model>> GetModelsByStatusAsync(ModelStatus status, bool trackChanges);
     Task<Model?> GetActiveModelForDatasetAsync(int datasetId, bool trackChanges);
     Task<Model?> GetModelWithMetricsAsync(int id, bool trackChanges);

@@ -97,4 +97,22 @@ public class ModelController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteModel(int id)
+    {
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized("User id bulunmadı");
+        }
+
+        var deleted = await _modelService.DeleteModelAsync(id, userId.Value);
+        if (!deleted)
+        {
+            return NotFound("Model bulunamadı veya bu kullanıcıya ait değil.");
+        }
+
+        return NoContent();
+    }
 }

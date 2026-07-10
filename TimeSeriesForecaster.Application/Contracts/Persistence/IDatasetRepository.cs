@@ -5,7 +5,7 @@ namespace TimeSeriesForecaster.Application.Contracts.Persistence;
 public interface IDatasetRepository
 {
     Task<Dataset?> GetDatasetByIdAsync(int id, bool trackChanges);
-    Task<IEnumerable<Dataset>> GetAllDatasetsForProjectAsync(int projectId, bool trackChanges, bool includeUnprocessed = true);
+    Task<IEnumerable<Dataset>> GetAllDatasetsForProjectAsync(int projectId, bool trackChanges, bool includeUnprocessed = true, bool includeInactive = false);
     void CreateDataset(Dataset dataset);
     void UpdateDataset(Dataset dataset);
     void RemoveDataset(Dataset dataset);
