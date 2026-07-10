@@ -59,7 +59,11 @@ public class ModelProcessingService : IModelProcessingService
             }
 
             var responseBody = await httpResponse.Content.ReadAsStringAsync();
-            var trainingResult = JsonSerializer.Deserialize<PythonTrainingResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var trainingResult = JsonSerializer.Deserialize<PythonTrainingResponse>(responseBody, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower // Python "model_path" -> C# "ModelPath" eşlemesi 
+            });
 
             if (trainingResult?.ModelPath == null)
             {

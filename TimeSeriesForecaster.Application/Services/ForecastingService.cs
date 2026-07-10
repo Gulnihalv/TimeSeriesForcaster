@@ -49,7 +49,11 @@ public class ForecastingService : IForecastingService
         }
 
         var responseBody = await httpResponse.Content.ReadAsStringAsync();
-        var predictResult = JsonSerializer.Deserialize<PythonPredictResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var predictResult = JsonSerializer.Deserialize<PythonPredictResponse>(responseBody, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower // Python "yhat_lower"/"yhat_upper" -> C# eşlemesi için
+        });
 
         if (predictResult?.Predictions == null)
         {
@@ -64,7 +68,7 @@ public class ForecastingService : IForecastingService
         var newPredictions = predictResult.Predictions.Select(p => new Prediction
         {
             ModelId = modelId,
-            PredictionDate = DateTime.Parse(p.Ds),
+            PredictionDate = DateTime.SpecifyKind(DateTime.Parse(p.Ds), DateTimeKind.Utc),
             PredictedValue = (decimal)p.Yhat,
             ConfidenceLower = (decimal)p.YhatLower,
             ConfidenceUpper = (decimal)p.YhatUpper,

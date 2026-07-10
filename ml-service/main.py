@@ -23,11 +23,12 @@ def trainModel(data: List[TrainingData]):
     trainingData = [datapoint.model_dump() for datapoint in data]
     df = pd.DataFrame(trainingData)
     df['ds'] = pd.to_datetime(df['ds'])
+    if df['ds'].dt.tz is not None:
+        df['ds'] = df['ds'].dt.tz_localize(None)  # Prophet tz-aware 'ds' kolonunu kabul etmiyor
     df = df.sort_values('ds').reset_index(drop=True)
 
     # Holdout tabanlı metrik hesaplama: yeterli veri varsa son ~%15'i test için ayır.
-    # Az veri noktalı (özellikle demo/ilk test) senaryolarında holdout yapmak anlamsız/kırılgan
-    # olacağından minimum 10 nokta şartı koyuyoruz; altındaysa metrics null döner.
+    # Az veri noktalı (özellikle demo/ilk test) senaryolarında holdout yapmak anlamsız/kırılgan olacağından minimum 10 nokta şartı koyuyoruz; altındaysa metrics null döner.
     metrics = None
     n = len(df)
     if n >= 10:

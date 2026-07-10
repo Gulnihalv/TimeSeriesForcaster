@@ -87,7 +87,7 @@ public class ModelRepository: IModelRepository
 
         return await query
             .Include(m => m.ModelMetrics)
-            .Include(m => m.Predictions)
+            .Include(m => m.Predictions.OrderBy(p => p.PredictionDate))
             .FirstOrDefaultAsync(m => m.Id == id);
     }
 
