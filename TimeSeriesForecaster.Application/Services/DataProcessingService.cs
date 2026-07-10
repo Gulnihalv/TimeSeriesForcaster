@@ -24,7 +24,7 @@ public class DataProcessingService : IDataProcessingService
     
     public async Task ProcessDatasetAsync(int datasetId, CancellationToken cancellationToken = default)
     {
-        var dataset = await _datasetRepository.GetDatasetByIdAsync(id: datasetId, trackChanges: false);
+        var dataset = await _datasetRepository.GetDatasetByIdAsync(id: datasetId, trackChanges: true);
         if (dataset == null) return;
 
         var filePath = Path.Combine(_env.ContentRootPath, dataset.FilePath!);
@@ -46,7 +46,8 @@ public class DataProcessingService : IDataProcessingService
             {
                 try
                 {
-                    var timeStamp = csv.GetField<DateTime>(dateColumn);
+                    var rawTimeStamp = csv.GetField<DateTime>(dateColumn);
+                    var timeStamp = DateTime.SpecifyKind(rawTimeStamp, DateTimeKind.Utc); // CSV'deki tarihi kaydırmadan UTC olarak etiketle
                     var value = csv.GetField<decimal>(targetColumn);
 
                     if (timeStamp < minDate) minDate = timeStamp;
@@ -55,7 +56,7 @@ public class DataProcessingService : IDataProcessingService
                     var newDataPoint = new DataPoint
                     {
                         DatasetId = dataset.Id,
-                        Timestamp = timeStamp.ToUniversalTime(),
+                        Timestamp = timeStamp,
                         Value = value,
                         IsOutlier = false,
                         CreatedAt = DateTime.UtcNow
@@ -63,9 +64,9 @@ public class DataProcessingService : IDataProcessingService
 
                     dataPoints.Add(newDataPoint);
                 }
-                catch // şimdilik loglama mekanizması yok.
+                catch (Exception ex) // GEÇİCİ TEŞHİS - sorunu bulunca kaldırılacak
                 {
-                    // _logger.LogWarning($"CSV satırı okunamadı: {ex.Message}");
+                    Console.WriteLine($"[TEŞHİS] CSV satırı okunamadı: {ex.GetType().Name} - {ex.Message}");
                 }
             }
         }

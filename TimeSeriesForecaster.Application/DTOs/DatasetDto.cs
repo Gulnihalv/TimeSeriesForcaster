@@ -1,4 +1,3 @@
-
 using System.ComponentModel.DataAnnotations;
 
 namespace TimeSeriesForecaster.Application.DTOs;
@@ -12,7 +11,12 @@ public class DatasetDto
 
     public string? OriginalFileName { get; set; }
     public string? FilePath { get; set; }
+    public string? DateColumn { get; set; }
+    public string? TargetColumn { get; set; }
     public int RecordCount { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public DateTime CreatedAt { get; set; }
     public bool IsProcessed { get; set; }
+    public string? ErrorMessage { get; set; }
 }
