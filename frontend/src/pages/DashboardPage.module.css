@@ -1,21 +1,139 @@
-.welcomeCard {
+.dashboardGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-large);
+}
+
+.heroCard {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: var(--spacing-large);
+  position: relative;
+  overflow: hidden;
+  padding: var(--spacing-xlarge);
 }
 
-.welcomeImage {
-  max-width: 300px;
-  border-radius: 8px;
+.heroText {
+  max-width: 480px;
+  position: relative;
+  z-index: 1;
 }
 
-.welcomeButton {
-  background-color: var(--color-primary);
-  color: white;
+.heroEyebrow {
+  display: inline-block;
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  color: #C9C4FF;
+  margin-bottom: 10px;
+}
+
+.heroTitle {
+  margin: 0 0 10px 0;
+  font-size: 1.7rem;
+  line-height: 1.25;
+  color: #fff;
+}
+
+.heroDescription {
+  margin: 0 0 var(--spacing-large) 0;
+  color: #B9BAC9;
+  font-size: var(--font-size-body);
+}
+
+.heroButton {
+  width: auto;
+  padding: 12px 22px;
+}
+
+.heroIcon {
+  color: #3A3C52;
+  position: relative;
+  z-index: 0;
+}
+
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-medium);
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.statIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--border-radius-small);
+  background-color: rgba(255, 255, 255, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.statValue {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.statValueSmall {
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statLabel {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.recentSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--font-size-heading);
+}
+
+.sectionLink {
+  background: none;
   border: none;
-  padding: 10px 20px;
-  border-radius: var(--border-radius-medium);
-  font-size: 1rem;
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: var(--font-size-caption);
   cursor: pointer;
+  padding: 0;
+}
+
+.sectionLink:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+@media (max-width: 720px) {
+  .heroCard {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .heroIcon {
+    display: none;
+  }
 }

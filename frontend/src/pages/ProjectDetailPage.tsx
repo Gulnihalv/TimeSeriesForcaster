@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { LuArrowLeft } from 'react-icons/lu';
 import Button from '../components/Button/Button';
 import Modal from '../components/Modal/Modal';
 import CreateDatasetForm from '../features/datasets/components/CreateDatasetForm';
 import DatasetList from '../features/datasets/components/DatasetList';
-import styles from './ProjectDetailPage.module.css'; 
+import styles from './ProjectDetailPage.module.css';
 
 const ProjectDetailPage = () => {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [listKey, setListKey] = useState(0);
   const id = parseInt(projectId || '0');
@@ -24,8 +26,10 @@ const ProjectDetailPage = () => {
   return (
     <div className={styles.pageContainer}>
       <header className={styles.pageHeader}>
-        <h1>Proje Detayı (ID: {id})</h1>
-        <Button 
+        <button className={styles.backLink} onClick={() => navigate('/projects')}>
+          <LuArrowLeft size={16} /> Tüm projeler
+        </button>
+        <Button
           onClick={() => setIsModalOpen(true)}
           style={{ width: 'auto' }}
         >
@@ -38,9 +42,9 @@ const ProjectDetailPage = () => {
         onClose={() => setIsModalOpen(false)}
         title="Yeni Dataset Yükle"
       >
-        <CreateDatasetForm 
-          projectId={id} 
-          onDatasetCreated={handleDatasetCreated} 
+        <CreateDatasetForm
+          projectId={id}
+          onDatasetCreated={handleDatasetCreated}
         />
       </Modal>
     </div>

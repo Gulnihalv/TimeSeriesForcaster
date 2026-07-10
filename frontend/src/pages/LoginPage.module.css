@@ -2,12 +2,40 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh; /* Tüm ekranı kapla */
-  /* background-color: #f4f7f6; Hafif bir arka plan rengi */
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-/* LoginForm'un maksimum genişliğini sınırlayalım */
-.container > :first-child {
+.stack {
   width: 100%;
   max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.brandLogo {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--border-radius-medium);
+  background: linear-gradient(135deg, var(--color-primary), #8B7CFF);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(108, 92, 231, 0.35);
+}
+
+.brandName {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-text);
 }

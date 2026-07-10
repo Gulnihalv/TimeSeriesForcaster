@@ -5,7 +5,7 @@
 }
 
 .modelCard {
-  border: 2px solid transparent;
+  border: 1.5px solid var(--color-border);
 }
 
 .selected {

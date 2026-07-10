@@ -24,6 +24,8 @@ const METRIC_LABELS: Record<MetricName, string> = {
   [MetricName.RMSE]: 'RMSE',
 };
 
+const METRIC_TONES = ['violet', 'blue', 'amber', 'green'] as const;
+
 const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
   const [horizon, setHorizon] = useState(30);
   const [isTriggering, setIsTriggering] = useState(false);
@@ -83,8 +85,11 @@ const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
 
       {model.metrics.length > 0 && (
         <div className={styles.metricGrid}>
-          {model.metrics.map((metric) => (
-            <div key={metric.metricName} className={styles.metricCard}>
+          {model.metrics.map((metric, index) => (
+            <div
+              key={metric.metricName}
+              className={`${styles.metricCard} ${styles[`tone_${METRIC_TONES[index % METRIC_TONES.length]}`]}`}
+            >
               <span className={styles.metricLabel}>{METRIC_LABELS[metric.metricName]}</span>
               <span className={styles.metricValue}>{metric.metricValue.toFixed(2)}</span>
             </div>

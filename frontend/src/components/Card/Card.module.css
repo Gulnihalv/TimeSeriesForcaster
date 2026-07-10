@@ -1,16 +1,55 @@
 .card {
   background-color: var(--color-surface);
-  border-radius: var(--border-radius-medium);
-  box-shadow: var(--shadow-medium);
-  padding: var(--spacing-medium);
+  border-radius: var(--border-radius-large);
+  box-shadow: var(--shadow-small);
+  border: 1px solid var(--color-border);
+  padding: var(--spacing-large);
 }
 
 .interactive {
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .interactive:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-medium);
+  border-color: transparent;
+}
+
+/* Pastel vurgu tonları — dashboard istatistik/aksiyon kartları için */
+.toneViolet {
+  background-color: var(--color-tone-violet-bg);
+  border-color: transparent;
+  color: var(--color-text);
+}
+
+.toneGreen {
+  background-color: var(--color-tone-green-bg);
+  border-color: transparent;
+  color: var(--color-text);
+}
+
+.toneAmber {
+  background-color: var(--color-tone-amber-bg);
+  border-color: transparent;
+  color: var(--color-text);
+}
+
+.toneBlue {
+  background-color: var(--color-tone-blue-bg);
+  border-color: transparent;
+  color: var(--color-text);
+}
+
+.toneRose {
+  background-color: var(--color-tone-rose-bg);
+  border-color: transparent;
+  color: var(--color-text);
+}
+
+.toneDark {
+  background-color: var(--color-tone-dark-bg);
+  border-color: transparent;
+  color: #fff;
 }

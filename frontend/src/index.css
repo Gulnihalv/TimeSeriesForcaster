@@ -1,113 +1,90 @@
 :root {
-  /* Marka */
-  --color-primary: #3F55A7;
-  --color-primary-hover: #535bf2;
+  /* ---- Marka / vurgu ---- */
+  --color-primary: #6C5CE7;
+  --color-primary-hover: #5b4bd4;
+  --color-primary-soft: #ECE9FE;
+  --color-accent-lime: #C4F23E;
 
-  /* Sidebar (Sidebar.module.css bu tonları artık buradan alır) */
-  --color-sidebar-bg: #343D61;
-  --color-sidebar-text: #94a3b8;
-  --color-sidebar-text-hover: #f1f5f9;
+  /* ---- Sidebar (arka planla aynı renkte, ince ikon rayı) ---- */
+  --color-sidebar-bg: transparent;
+  --color-sidebar-bg-soft: var(--color-surface);
+  --color-sidebar-text: var(--color-text-muted);
+  --color-sidebar-text-hover: #F4F5FA;
+  --color-sidebar-active-bg: var(--color-primary-soft);
+  --color-sidebar-active-text: var(--color-primary);
 
-  /* Metin */
-  --color-text: #1e2233;
-  --color-text-secondary: #6b7280;
-  --color-text-muted: #9ca3af;
+  /* ---- Metin ---- */
+  --color-text: #191A23;
+  --color-text-secondary: #6B6D7C;
+  --color-text-muted: #9799A8;
 
-  /* Yüzey / kenarlık */
-  --color-surface: #ffffff;      /* Kart arka planı */
-  --color-page-bg: #f8f9fe;      /* Sayfa arka planı */
-  --color-border: #e2e4ee;
+  /* ---- Yüzey / kenarlık ---- */
+  --color-surface: #ffffff;
+  --color-surface-muted: #F6F7FC;
+  --color-page-bg: #14151F;
+  --color-border: #E7E8F2;
 
-  /* Durum renkleri — ModelStatus (Queued/Training/Completed/Failed) ve
-     dataset isProcessed durumları buradan renk alır, komponentler hex yazmaz. */
-  --color-status-queued-bg: #eef0f7;
-  --color-status-queued-text: #4b5168;
+  /* ---- Pastel tonlar (dashboard/istatistik kartları) ---- */
+  --color-tone-violet-bg: #E7E2FE;
+  --color-tone-violet-text: #6C5CE7;
+  --color-tone-green-bg: #DFF5E3;
+  --color-tone-green-text: #1F9254;
+  --color-tone-amber-bg: #FCEFD8;
+  --color-tone-amber-text: #B4790A;
+  --color-tone-blue-bg: #DEEBFD;
+  --color-tone-blue-text: #2563C7;
+  --color-tone-rose-bg: #FBE3ED;
+  --color-tone-rose-text: #C23164;
+  --color-tone-dark-bg: #14151F;
+  --color-tone-dark-text: #ffffff;
 
-  --color-status-training-bg: #e6ecfb;
-  --color-status-training-text: #3f55a7;
+  /* ---- Durum renkleri (StatusBadge / ProcessingBadge) ---- */
+  --color-status-queued-bg: #EEF0F4;
+  --color-status-queued-text: #6B6D7C;
 
-  --color-status-completed-bg: #e3f6ea;
-  --color-status-completed-text: #1f8a4c;
+  --color-status-training-bg: #E3EEFD;
+  --color-status-training-text: #2563C7;
 
-  --color-status-failed-bg: #fdeaea;
-  --color-status-failed-text: #c62828;
+  --color-status-completed-bg: #E2F7E9;
+  --color-status-completed-text: #1F9254;
+
+  --color-status-failed-bg: #FDE7ED;
+  --color-status-failed-text: #C23164;
 
   /* Genel amaçlı hata/başarı (formlarda kullanılır) */
-  --color-danger-bg: #fdeaea;
-  --color-danger-text: #c62828;
-  --color-success-bg: #e3f6ea;
-  --color-success-text: #1f8a4c;
+  --color-danger-bg: #FDE7ED;
+  --color-danger-text: #C23164;
+  --color-success-bg: #E2F7E9;
+  --color-success-text: #1F9254;
 
-  /* Ölçüler */
+  /* ---- Ölçüler ---- */
   --spacing-small: 8px;
   --spacing-medium: 16px;
   --spacing-large: 24px;
-  --border-radius-small: 6px;
-  --border-radius-medium: 8px;
-  --border-radius-large: 16px;
+  --spacing-xlarge: 32px;
 
-  /* Tipografi ölçeği */
+  --border-radius-small: 10px;
+  --border-radius-medium: 14px;
+  --border-radius-large: 20px;
+  --border-radius-xlarge: 28px;
+  --border-radius-pill: 999px;
+
+  /* ---- Tipografi ölçeği ---- */
   --font-size-caption: 0.8125rem;  /* 13px */
   --font-size-body: 1rem;          /* 16px */
   --font-size-heading: 1.25rem;    /* 20px */
   --font-size-title: 1.75rem;      /* 28px */
 
-  /* Gölgeler */
-  --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.05);
+  /* ---- Gölgeler ---- */
+  --shadow-small: 0 1px 2px rgba(20, 21, 33, 0.04);
+  --shadow-medium: 0 8px 24px rgba(24, 26, 51, 0.06);
+  --shadow-large: 0 20px 48px rgba(24, 26, 51, 0.10);
+
+  color-scheme: light;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #535bf2;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #3F55A7
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body,
@@ -117,9 +94,39 @@ html,
   padding: 0;
   width: 100%;
   min-height: 100vh;
-  box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background-color: var(--color-page-bg);
   color: var(--color-text);
+}
+
+a {
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: inherit;
+}
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+h1, h2, h3, h4, h5 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+button {
+  font-family: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #d7d9ea;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }

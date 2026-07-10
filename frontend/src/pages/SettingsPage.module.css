@@ -1,0 +1,123 @@
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-large);
+  max-width: 720px;
+}
+
+.profileCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium);
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-medium);
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--color-primary), #8B7CFF);
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.name {
+  margin: 0;
+  font-size: var(--font-size-heading);
+}
+
+.email {
+  margin: 2px 0 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+
+.profileHint {
+  margin: 0;
+  padding-top: var(--spacing-medium);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+
+.sectionList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium);
+}
+
+.sectionCard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-medium);
+}
+
+.sectionIcon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: var(--border-radius-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tone_blue { background-color: var(--color-tone-blue-bg); color: var(--color-tone-blue-text); }
+.tone_violet { background-color: var(--color-tone-violet-bg); color: var(--color-tone-violet-text); }
+.tone_green { background-color: var(--color-tone-green-bg); color: var(--color-tone-green-text); }
+
+.sectionText {
+  min-width: 0;
+  flex: 1;
+}
+
+.sectionTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--font-size-body);
+}
+
+.soonBadge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  padding: 3px 9px;
+  border-radius: var(--border-radius-pill);
+}
+
+.sectionDescription {
+  margin: 6px 0 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+
+.aboutCard {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-medium);
+}
+
+.aboutText {
+  margin: 0;
+  color: #C7C8DA;
+  font-size: var(--font-size-caption);
+}

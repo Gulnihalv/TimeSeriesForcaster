@@ -1,18 +1,13 @@
 .projectsContainer {
-  max-width: 960px;
-  margin: 20px auto;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-large);
 }
 
 .header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 20px;
-}
-
-.header h1 {
-  margin: 0;
 }
 
 .headerButtons {

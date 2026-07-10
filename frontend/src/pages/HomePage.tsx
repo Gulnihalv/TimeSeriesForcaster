@@ -1,7 +1,9 @@
-
+import { Navigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 
 const HomePage = () => {
-  return <div>Burası Anasayfa (Hoşgeldin Dashboard)</div>;
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />;
 };
 
 export default HomePage;
