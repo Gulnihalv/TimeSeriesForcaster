@@ -26,13 +26,20 @@ public class DatasetsController : ControllerBase
             return Unauthorized("User id bulunmadı");
         }
 
-        var result = await _datasetService.CreateDatasetFromUploadAsync(projectId, userId.Value, name, file, dateColumnName, targetColumnName);
-        if (result == null)
+        try
         {
-            return StatusCode(StatusCodes.Status403Forbidden, "Yetkin Yok!");
-        }
+            var result = await _datasetService.CreateDatasetFromUploadAsync(projectId, userId.Value, name, file, dateColumnName, targetColumnName);
+            if (result == null)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, "Yetkin Yok!");
+            }
 
-        return CreatedAtAction(nameof(GetDatasetById), new { id = result.Id }, result);
+            return CreatedAtAction(nameof(GetDatasetById), new { id = result.Id }, result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpGet("{id}", Name = "GetDatasetById")]

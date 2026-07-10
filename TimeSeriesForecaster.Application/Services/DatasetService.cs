@@ -1,4 +1,6 @@
+using System.Globalization;
 using AutoMapper;
+using CsvHelper;
 using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -56,6 +58,36 @@ public class DatasetService : IDatasetService
     
     }
 
+    // CSV'nin header satırını okuyup dateColumnName/targetColumnName'in gerçekten var olup
+    // olmadığını kontrol eder. Dosyayı diske kaydetmeden önce çağrılır.
+    private async Task ValidateCsvColumnsAsync(IFormFile file, string dateColumnName, string targetColumnName)
+    {
+        using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream);
+        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+
+        await csv.ReadAsync();
+        csv.ReadHeader();
+        var headers = csv.HeaderRecord ?? Array.Empty<string>();
+
+        var missingColumns = new List<string>();
+        if (!headers.Contains(dateColumnName, StringComparer.OrdinalIgnoreCase))
+        {
+            missingColumns.Add(dateColumnName);
+        }
+        if (!headers.Contains(targetColumnName, StringComparer.OrdinalIgnoreCase))
+        {
+            missingColumns.Add(targetColumnName);
+        }
+
+        if (missingColumns.Any())
+        {
+            throw new ArgumentException(
+                $"CSV dosyasında şu sütun(lar) bulunamadı: {string.Join(", ", missingColumns)}. " +
+                $"Dosyadaki mevcut sütunlar: {string.Join(", ", headers)}");
+        }
+    }
+
     public async Task<DatasetDto?> CreateDatasetFromUploadAsync(int projectId, int userId, string name, IFormFile file, string dateColumnName, string targetColumnName)
     {
         var userOwnsProject = await _projectRepository.UserOwnsProjectAsync(projectId: projectId, userId: userId);
@@ -63,6 +95,14 @@ public class DatasetService : IDatasetService
         {
             return null;
         }
+
+        var extension = Path.GetExtension(file.FileName);
+        if (!string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException($"Sadece .csv uzantılı dosyalar yüklenebilir. Yüklenen dosya: '{file.FileName}'");
+        }
+
+        await ValidateCsvColumnsAsync(file, dateColumnName, targetColumnName);
 
         var storagePath = await SaveFileAsync(file, "datasets");
 
