@@ -16,7 +16,10 @@ const DatasetList: FC<DatasetListProps> = ({ projectId }) => {
   const { data: datasets, isLoading, error } = useApiData<Dataset[]>(
     () => getDatasetsForProject(projectId),
     [projectId],
-    { fallbackErrorMessage: 'Datasetler yüklenemedi.' }
+    {
+      fallbackErrorMessage: 'Datasetler yüklenemedi.',
+      shouldPoll: (list) => list.some((d) => !d.isProcessed && !d.errorMessage),
+    }
   );
   const navigate = useNavigate();
 

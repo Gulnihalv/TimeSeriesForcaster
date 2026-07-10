@@ -18,7 +18,10 @@ const DatasetSummary: FC<DatasetSummaryProps> = ({ datasetId, onLoaded }) => {
   const { data: dataset, isLoading, error } = useApiData<Dataset>(
     () => getDatasetById(datasetId),
     [datasetId],
-    { fallbackErrorMessage: 'Dataset bilgisi yüklenemedi.' }
+    {
+      fallbackErrorMessage: 'Dataset bilgisi yüklenemedi.',
+      shouldPoll: (d) => !d.isProcessed && !d.errorMessage,
+    }
   );
 
   useEffect(() => {
