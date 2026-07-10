@@ -90,4 +90,22 @@ public class DatasetsController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpGet("{id}/datapoints")]
+    public async Task<IActionResult> GetDataPoints(int id)
+    {
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized("User id bulunmadı");
+        }
+
+        var dataPoints = await _datasetService.GetDataPointsForDatasetAsync(id, userId.Value);
+        if (dataPoints == null)
+        {
+            return NotFound("Dataset bulunamadı veya bu kullanıcıya ait değil.");
+        }
+
+        return Ok(dataPoints);
+    }
 }

@@ -17,6 +17,13 @@ export interface Dataset {
     createdAt: string;
 }
 
+export interface DataPoint {
+  id: number;
+  timestamp: string;
+  value: number;
+  isOutlier: boolean;
+}
+
 export const getDatasetsForProject = async (projectId: number): Promise<Dataset[]> => {
   const response = await apiClient.get<Dataset[]>(`/projects/${projectId}/datasets`);
   return response.data;
@@ -56,4 +63,9 @@ export const createDataset = async (
 
 export const deleteDataset = async (datasetId: number): Promise<void> => {
   await apiClient.delete(`/datasets/${datasetId}`);
+};
+
+export const getDataPointsForDataset = async (datasetId: number): Promise<DataPoint[]> => {
+  const response = await apiClient.get<DataPoint[]>(`/datasets/${datasetId}/datapoints`);
+  return response.data;
 };

@@ -16,15 +16,17 @@ public class DatasetService : IDatasetService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDatasetRepository _datasetRepository;
     private readonly IProjectRepository _projectRepository;
+    private readonly IDataPointRepository _dataPointRepository;
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly IMapper _mapper;
     private readonly IWebHostEnvironment _env;
 
-    public DatasetService(IUnitOfWork unitOfWork, IDatasetRepository datasetRepository, IProjectRepository projectRepository, IBackgroundJobClient backgroundJobClient, IMapper mapper, IWebHostEnvironment env)
+    public DatasetService(IUnitOfWork unitOfWork, IDatasetRepository datasetRepository, IProjectRepository projectRepository, IDataPointRepository dataPointRepository, IBackgroundJobClient backgroundJobClient, IMapper mapper, IWebHostEnvironment env)
     {
         _unitOfWork = unitOfWork;
         _datasetRepository = datasetRepository;
         _projectRepository = projectRepository;
+        _dataPointRepository = dataPointRepository;
         _backgroundJobClient = backgroundJobClient;
         _mapper = mapper;
         _env = env;
@@ -96,12 +98,15 @@ public class DatasetService : IDatasetService
             return null;
         }
 
+        // 1) Dosya tipi kontrolü - sadece .csv kabul ediyoruz
         var extension = Path.GetExtension(file.FileName);
         if (!string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException($"Sadece .csv uzantılı dosyalar yüklenebilir. Yüklenen dosya: '{file.FileName}'");
         }
 
+        // 2) Kolon adı kontrolü - dosyayı diske kaydetmeden ÖNCE header'ı okuyup doğruluyoruz,
+        // böylece geçersiz bir dosya diskte yer kaplamıyor ve kullanıcı hatayı anında (Hangfire'ı beklemeden) görüyor.
         await ValidateCsvColumnsAsync(file, dateColumnName, targetColumnName);
 
         var storagePath = await SaveFileAsync(file, "datasets");
@@ -197,5 +202,21 @@ public class DatasetService : IDatasetService
         await _unitOfWork.SaveChangesAsync();
 
         return true;
+    }
+
+    public async Task<IEnumerable<DataPointDto>?> GetDataPointsForDatasetAsync(int datasetId, int userId)
+    {
+        var userOwnsDataset = await _datasetRepository.UserOwnsDatasetAsync(datasetId: datasetId, userId: userId);
+        if (!userOwnsDataset)
+        {
+            return null;
+        }
+
+        // Not: dataset'ler tipik bir portfolyo/demo boyutunda (yüzlerce-birkaç bin satır) olacağından
+        // şimdilik sayfalama yapmıyoruz. Çok büyük dataset'ler için ileride limit/pagination eklenebilir.
+        var dataPoints = await _dataPointRepository.GetDataPointsAsync(datasetId: datasetId);
+        var ordered = dataPoints.OrderBy(dp => dp.Timestamp);
+
+        return _mapper.Map<IEnumerable<DataPointDto>>(ordered);
     }
 }

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Card from '../components/Card/Card';
 import DatasetSummary from '../features/datasets/components/DatasetSummary';
+import DatasetChart from '../features/datasets/components/DatasetChart';
 import ModelTrainingForm from '../features/models/components/ModelTrainingForm';
 import ModelList from '../features/models/components/ModelList';
 import ModelDetailPanel from '../features/models/components/ModelDetailPanel';
@@ -44,46 +45,66 @@ const DatasetDetailPage = () => {
     : undefined;
 
   return (
-    <div className={styles.pageContainer}>
-      {/* Sol rail: dataset özeti (ayrı kart), eğitim formu, model listesi */}
-      <div className={styles.rail}>
-        <DatasetSummary datasetId={id} onLoaded={handleDatasetLoaded} />
+    <div>
+      {/* Üst hero bölümü: dataset özeti + ham veri grafiği, iki ayrı kart olarak, koyu bir çerçeve kart içinde */}
+      <Card tone="dark" className={styles.heroWrapper}>
+        <div className={styles.heroRow}>
+          <DatasetSummary datasetId={id} onLoaded={handleDatasetLoaded} />
 
-        <Card className={styles.section}>
-          <h3 className={styles.sectionTitle}>Yeni model eğit</h3>
-          <ModelTrainingForm
-            datasetId={id}
-            disabled={trainingDisabled}
-            disabledReason={trainingDisabledReason}
-            onModelCreated={handleModelCreated}
-          />
-        </Card>
+          <Card className={styles.chartCard}>
+            <h3 className={styles.sectionTitle}>Ham veri grafiği</h3>
+            {dataset?.isProcessed ? (
+              <DatasetChart datasetId={id} />
+            ) : (
+              <p className={styles.chartPlaceholder}>
+                {dataset?.errorMessage
+                  ? 'Dataset işlenirken hata oluştu, grafik gösterilemiyor.'
+                  : 'Dataset işlendikten sonra grafik burada görünecek.'}
+              </p>
+            )}
+          </Card>
+        </div>
+      </Card>
 
-        <Card className={styles.section}>
-          <h3 className={styles.sectionTitle}>Eğitilen modeller</h3>
-          <ModelList
-            key={modelListKey}
-            datasetId={id}
-            selectedModelId={selectedModelId}
-            onSelectModel={setSelectedModelId}
-            onModelDeleted={handleModelDeleted}
-          />
-        </Card>
-      </div>
-
-      {/* Sağ: seçili modelin detayı, geniş alanı kullanır */}
-      <div className={styles.detailColumn}>
-        {selectedModelId !== null ? (
-          <ModelDetailPanel modelId={selectedModelId} />
-        ) : (
-          <div className={styles.emptyWrap}>
-            <EmptyState
-              icon={<LuChartSpline size={22} />}
-              title="Henüz bir model seçilmedi"
-              description="Metriklerini ve tahmin grafiğini görmek için soldaki listeden bir model seç."
+      <div className={styles.pageContainer}>
+        {/* Sol rail: eğitim formu, model listesi */}
+        <div className={styles.rail}>
+          <Card className={styles.section}>
+            <h3 className={styles.sectionTitle}>Yeni model eğit</h3>
+            <ModelTrainingForm
+              datasetId={id}
+              disabled={trainingDisabled}
+              disabledReason={trainingDisabledReason}
+              onModelCreated={handleModelCreated}
             />
-          </div>
-        )}
+          </Card>
+
+          <Card className={styles.section}>
+            <h3 className={styles.sectionTitle}>Eğitilen modeller</h3>
+            <ModelList
+              key={modelListKey}
+              datasetId={id}
+              selectedModelId={selectedModelId}
+              onSelectModel={setSelectedModelId}
+              onModelDeleted={handleModelDeleted}
+            />
+          </Card>
+        </div>
+
+        {/* Sağ: seçili modelin detayı, geniş alanı kullanır */}
+        <div className={styles.detailColumn}>
+          {selectedModelId !== null ? (
+            <ModelDetailPanel modelId={selectedModelId} />
+          ) : (
+            <div className={styles.emptyWrap}>
+              <EmptyState
+                icon={<LuChartSpline size={22} />}
+                title="Henüz bir model seçilmedi"
+                description="Metriklerini ve tahmin grafiğini görmek için soldaki listeden bir model seç."
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,3 +1,29 @@
+.heroWrapper {
+  margin-bottom: var(--spacing-large);
+}
+
+.heroRow {
+  display: flex;
+  gap: var(--spacing-large);
+  align-items: stretch;
+}
+
+.heroRow > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.chartCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-small);
+}
+
+.chartPlaceholder {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
 .pageContainer {
   display: grid;
   grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
@@ -44,5 +70,9 @@
 @media (max-width: 960px) {
   .pageContainer {
     grid-template-columns: 1fr;
+  }
+
+  .heroRow {
+    flex-direction: column;
   }
 }

@@ -11,6 +11,7 @@ public class MappingProfile : Profile
         CreateMap<Project, ProjectDto>();
         CreateMap<ProjectForCreationDto, Project>();
         CreateMap<Dataset, DatasetDto>();
+        CreateMap<DataPoint, DataPointDto>();
         CreateMap<Model, ModelDto>();
         CreateMap<Prediction, PredictionDto>();
         CreateMap<ModelMetric, ModelMetricDto>();
