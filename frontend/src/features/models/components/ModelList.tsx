@@ -8,18 +8,20 @@ import { getErrorMessage } from '../../../api/errorUtils';
 import { LuTrash2 } from 'react-icons/lu';
 import styles from './ModelList.module.css';
 
+const MAX_COMPARISON = 4;
+
 interface ModelListProps {
   datasetId: number;
-  selectedModelId: number | null;
-  onSelectModel: (modelId: number) => void;
-  /** Seçili model silinirse üst bileşenin seçimi temizleyebilmesi için */
+  selectedModelIds: number[];
+  onSelectionChange: (modelIds: number[]) => void;
+  /** Seçili model silinirse üst bileşenin seçimi güncelleyebilmesi için */
   onModelDeleted?: (modelId: number) => void;
 }
 
 const isActive = (status: ModelStatus) =>
   status === ModelStatus.Queued || status === ModelStatus.Training;
 
-const ModelList: FC<ModelListProps> = ({ datasetId, selectedModelId, onSelectModel, onModelDeleted }) => {
+const ModelList: FC<ModelListProps> = ({ datasetId, selectedModelIds, onSelectionChange, onModelDeleted }) => {
   const shouldPoll = useCallback(
     (models: Model[]) => models.some((m) => isActive(m.status)),
     []
@@ -31,9 +33,36 @@ const ModelList: FC<ModelListProps> = ({ datasetId, selectedModelId, onSelectMod
     { fallbackErrorMessage: 'Modeller yüklenemedi.', shouldPoll, pollIntervalMs: 3000 }
   );
 
+  const [compareMode, setCompareMode] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Model | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [limitHint, setLimitHint] = useState(false);
+
+  const toggleCompareMode = () => {
+    setCompareMode((prev) => !prev);
+    onSelectionChange([]); // mod değişince seçimi sıfırla, karışıklığı önlemek için
+  };
+
+  const handleCardClick = (modelId: number) => {
+    if (!compareMode) {
+      onSelectionChange([modelId]);
+      return;
+    }
+
+    if (selectedModelIds.includes(modelId)) {
+      onSelectionChange(selectedModelIds.filter((id) => id !== modelId));
+      return;
+    }
+
+    if (selectedModelIds.length >= MAX_COMPARISON) {
+      setLimitHint(true);
+      setTimeout(() => setLimitHint(false), 2500);
+      return;
+    }
+
+    onSelectionChange([...selectedModelIds, modelId]);
+  };
 
   const handleDeleteClick = (e: React.MouseEvent, model: Model) => {
     e.stopPropagation();
@@ -61,44 +90,75 @@ const ModelList: FC<ModelListProps> = ({ datasetId, selectedModelId, onSelectMod
   if (isLoading) return <div>Modeller yükleniyor...</div>;
   if (error) return <div className={styles.error}>{error}</div>;
 
-  if (!models || models.length === 0) {
-    return <p className={styles.empty}>Bu dataset için henüz eğitilmiş bir model yok.</p>;
-  }
-
   return (
     <>
-      <div className={styles.list}>
-        {models.map((model) => (
-          <Card
-            key={model.id}
-            interactive
-            onClick={() => onSelectModel(model.id)}
-            className={`${styles.modelCard} ${model.id === selectedModelId ? styles.selected : ''}`}
-          >
-            <div className={styles.row}>
-              <div>
-                <p className={styles.name}>{model.modelName || model.algorithm}</p>
-                <p className={styles.meta}>
-                  {model.trainingStartedAt
-                    ? `Başladı: ${new Date(model.trainingStartedAt).toLocaleString()}`
-                    : 'Henüz başlamadı'}
-                </p>
-              </div>
-              <div className={styles.rowActions}>
-                <StatusBadge status={model.status} />
-                <button
-                  className={styles.deleteButton}
-                  onClick={(e) => handleDeleteClick(e, model)}
-                  title="Modeli sil"
-                  aria-label="Modeli sil"
-                >
-                  <LuTrash2 size={16} />
-                </button>
-              </div>
-            </div>
-          </Card>
-        ))}
+      <div className={styles.toolbar}>
+        <button
+          type="button"
+          className={`${styles.compareToggle} ${compareMode ? styles.compareToggleActive : ''}`}
+          onClick={toggleCompareMode}
+        >
+          {compareMode ? 'Karşılaştırmayı kapat' : 'Karşılaştır'}
+        </button>
+        {compareMode && (
+          <span className={styles.compareHint}>
+            {limitHint
+              ? `En fazla ${MAX_COMPARISON} model seçebilirsin.`
+              : `${selectedModelIds.length} model seçili (2-${MAX_COMPARISON} arası seç)`}
+          </span>
+        )}
       </div>
+
+      {(!models || models.length === 0) ? (
+        <p className={styles.empty}>Bu dataset için henüz eğitilmiş bir model yok.</p>
+      ) : (
+        <div className={styles.list}>
+          {models.map((model) => {
+            const isSelected = selectedModelIds.includes(model.id);
+            return (
+              <Card
+                key={model.id}
+                interactive
+                onClick={() => handleCardClick(model.id)}
+                className={`${styles.modelCard} ${isSelected ? styles.selected : ''}`}
+              >
+                <div className={styles.row}>
+                  <div className={styles.rowMain}>
+                    {compareMode && (
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        readOnly
+                        className={styles.checkbox}
+                        aria-label={`${model.modelName} karşılaştırmaya ekle`}
+                      />
+                    )}
+                    <div>
+                      <p className={styles.name}>{model.modelName || model.algorithm}</p>
+                      <p className={styles.meta}>
+                        {model.trainingStartedAt
+                          ? `Başladı: ${new Date(model.trainingStartedAt).toLocaleString()}`
+                          : 'Henüz başlamadı'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={styles.rowActions}>
+                    <StatusBadge status={model.status} />
+                    <button
+                      className={styles.deleteButton}
+                      onClick={(e) => handleDeleteClick(e, model)}
+                      title="Modeli sil"
+                      aria-label="Modeli sil"
+                    >
+                      <LuTrash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <ConfirmDialog
         isOpen={deleteTarget !== null}

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from prophet import Prophet
 from prophet.serialize import model_to_json, model_from_json
 import uuid
-from typing import List
+from typing import List, Optional
 
 app = FastAPI()
 
@@ -13,22 +13,41 @@ class TrainingData(BaseModel):
     ds: str
     y: float
 
+class ProphetHyperparameters(BaseModel):
+    seasonality_mode: Optional[str] = None
+    changepoint_prior_scale: Optional[float] = None
+    seasonality_prior_scale: Optional[float] = None
+    changepoint_range: Optional[float] = None
+
+class TrainRequest(BaseModel):
+    data: List[TrainingData]
+    hyperparameters: Optional[ProphetHyperparameters] = None
+
 class PredictRequest(BaseModel):
     model_path: str
     horizon: int  # kaç adım (gün) ileriye tahmin üretilecek
 
 @app.post("/train/prophet")
-def trainModel(data: List[TrainingData]):
-    
-    trainingData = [datapoint.model_dump() for datapoint in data]
+def trainModel(request: TrainRequest):
+
+    trainingData = [datapoint.model_dump() for datapoint in request.data]
     df = pd.DataFrame(trainingData)
     df['ds'] = pd.to_datetime(df['ds'])
     if df['ds'].dt.tz is not None:
         df['ds'] = df['ds'].dt.tz_localize(None)  # Prophet tz-aware 'ds' kolonunu kabul etmiyor
     df = df.sort_values('ds').reset_index(drop=True)
 
+    # Gönderilmeyen (None) hiperparametreleri Prophet'e hiç geçirmiyoruz ki
+    # Prophet kendi varsayılanlarını kullanabilsin.
+    prophet_kwargs = {}
+    if request.hyperparameters:
+        for field_name, value in request.hyperparameters.model_dump().items():
+            if value is not None:
+                prophet_kwargs[field_name] = value
+
     # Holdout tabanlı metrik hesaplama: yeterli veri varsa son ~%15'i test için ayır.
-    # Az veri noktalı (özellikle demo/ilk test) senaryolarında holdout yapmak anlamsız/kırılgan olacağından minimum 10 nokta şartı koyuyoruz; altındaysa metrics null döner.
+    # Az veri noktalı (özellikle demo/ilk test) senaryolarında holdout yapmak anlamsız/kırılgan
+    # olacağından minimum 10 nokta şartı koyuyoruz; altındaysa metrics null döner.
     metrics = None
     n = len(df)
     if n >= 10:
@@ -36,7 +55,7 @@ def trainModel(data: List[TrainingData]):
         train_df = df.iloc[:-holdout_size]
         test_df = df.iloc[-holdout_size:]
 
-        holdout_model = Prophet()
+        holdout_model = Prophet(**prophet_kwargs)
         holdout_model.fit(train_df)
 
         holdout_forecast = holdout_model.predict(test_df[['ds']])
@@ -46,8 +65,10 @@ def trainModel(data: List[TrainingData]):
         rmse = float((errors ** 2).mean() ** 0.5)
         metrics = {"mae": mae, "rmse": rmse}
 
-    # Üretim modeli: metrikler ne olursa olsun TÜM veriyle eğitilir (holdout sadece ölçüm içindi)
-    prophet = Prophet()
+    # Üretim modeli: metrikler ne olursa olsun TÜM veriyle eğitilir (holdout sadece ölçüm içindi).
+    # Aynı hiperparametreler burada da kullanılıyor - holdout ile üretim modeli arasındaki tek
+    # fark eğitim verisinin kapsamı, ayarlar aynı kalmalı.
+    prophet = Prophet(**prophet_kwargs)
     prophet.fit(df)
 
     model_directory = "models"

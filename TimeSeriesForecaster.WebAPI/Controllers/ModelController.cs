@@ -29,7 +29,7 @@ public class ModelController : ControllerBase
 
         try
         {
-            var result = await _modelService.TrainModelAsync(datasetId, userId.Value, request.Algorithm);
+            var result = await _modelService.TrainModelAsync(datasetId, userId.Value, request.Algorithm, request.Hyperparameters);
             if (result == null)
             {
                 return Forbid();

@@ -50,12 +50,23 @@ export interface ModelDetail extends Model {
   metrics: ModelMetric[];
 }
 
+// Prophet'in onlarca parametresi var, en çok etkisi olan birkaçını sunuyoruz.
+// Hepsi opsiyonel - gönderilmezse backend/Prophet kendi varsayılanlarını kullanır.
+export interface ProphetHyperparameters {
+  seasonalityMode?: 'additive' | 'multiplicative';
+  changepointPriorScale?: number;
+  seasonalityPriorScale?: number;
+  changepointRange?: number;
+}
+
 export const trainModel = async (
   datasetId: number,
-  algorithm: string = "prophet"
+  algorithm: string = "prophet",
+  hyperparameters?: ProphetHyperparameters
 ): Promise<Model> => {
   const response = await apiClient.post<Model>(`/datasets/${datasetId}/models`, {
     algorithm,
+    hyperparameters,
   });
   return response.data;
 };

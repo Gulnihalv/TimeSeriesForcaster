@@ -1,0 +1,102 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-large);
+}
+
+.info {
+  color: var(--color-text-secondary);
+}
+
+.error {
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-bg);
+  padding: 10px;
+  border-radius: var(--border-radius-medium);
+}
+
+.modelChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-small);
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--border-radius-medium);
+  border: 1.5px solid var(--color-border);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.chipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chipRemove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 50%;
+}
+
+.chipRemove:hover {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-small);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: var(--font-size-caption);
+}
+
+.bestCell {
+  color: var(--color-tone-green-text);
+  font-weight: 700;
+  background-color: var(--color-tone-green-bg);
+}
+
+.diffCell {
+  background-color: var(--color-tone-amber-bg);
+  color: var(--color-tone-amber-text);
+  font-weight: 600;
+}

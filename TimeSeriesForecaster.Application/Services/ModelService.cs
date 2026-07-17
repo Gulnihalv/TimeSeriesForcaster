@@ -61,7 +61,7 @@ public class ModelService : IModelService
         return modelDto;
     }
 
-    public async Task<ModelDto?> TrainModelAsync(int datasetId, int userId, string algorithm)
+    public async Task<ModelDto?> TrainModelAsync(int datasetId, int userId, string algorithm, ProphetHyperparametersDto? hyperparameters = null)
     {
         var userOwnsDataset = await _datasetRepository.UserOwnsDatasetAsync(datasetId: datasetId, userId: userId);
         if (!userOwnsDataset)
@@ -76,6 +76,12 @@ public class ModelService : IModelService
             DatasetId = datasetId,
             ModelName = $"{algorithm} Model - {DateTime.UtcNow:d}",
             Algorithm = algorithm,
+            // Hiperparametreleri JSON string olarak saklıyoruz - hem eğitim sırasında Python'a
+            // iletmek hem de ileride model karşılaştırma ekranında "hangi ayarla eğitildi" diye
+            // göstermek için. Hiçbiri gönderilmezse null kalır, Prophet kendi varsayılanlarını kullanır.
+            Hyperparameters = hyperparameters == null
+                ? null
+                : JsonSerializer.Serialize(hyperparameters, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
             ModelFilePath = null, // burası pythondan gelince doldurulcak
             Status = ModelStatus.Queued,
             TrainingStartedAt = null,

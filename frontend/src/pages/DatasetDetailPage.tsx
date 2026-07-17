@@ -6,6 +6,7 @@ import DatasetChart from '../features/datasets/components/DatasetChart';
 import ModelTrainingForm from '../features/models/components/ModelTrainingForm';
 import ModelList from '../features/models/components/ModelList';
 import ModelDetailPanel from '../features/models/components/ModelDetailPanel';
+import ModelComparisonView from '../features/models/components/ModelComparisonView';
 import EmptyState from '../components/EmptyState/EmptyState';
 import type { Dataset } from '../features/datasets/api/datasetApi';
 import { LuChartSpline } from 'react-icons/lu';
@@ -16,7 +17,7 @@ const DatasetDetailPage = () => {
   const id = parseInt(datasetId || '0');
 
   const [dataset, setDataset] = useState<Dataset | null>(null);
-  const [selectedModelId, setSelectedModelId] = useState<number | null>(null);
+  const [selectedModelIds, setSelectedModelIds] = useState<number[]>([]);
   const [modelListKey, setModelListKey] = useState(0);
 
   const handleDatasetLoaded = useCallback((loaded: Dataset) => {
@@ -28,10 +29,14 @@ const DatasetDetailPage = () => {
   };
 
   const handleModelDeleted = (deletedModelId: number) => {
-    setSelectedModelId((current) => (current === deletedModelId ? null : current));
+    setSelectedModelIds((current) => current.filter((id) => id !== deletedModelId));
   };
 
-  if (id === 0) {
+  const handleRemoveFromComparison = (modelId: number) => {
+    setSelectedModelIds((current) => current.filter((id) => id !== modelId));
+  };
+
+  if (id === 0 || Number.isNaN(id)) {
     return <div>Geçersiz Dataset ID'si</div>;
   }
 
@@ -84,25 +89,36 @@ const DatasetDetailPage = () => {
             <ModelList
               key={modelListKey}
               datasetId={id}
-              selectedModelId={selectedModelId}
-              onSelectModel={setSelectedModelId}
+              selectedModelIds={selectedModelIds}
+              onSelectionChange={setSelectedModelIds}
               onModelDeleted={handleModelDeleted}
             />
           </Card>
         </div>
 
-        {/* Sağ: seçili modelin detayı, geniş alanı kullanır */}
+        {/* Sağ: seçime göre tek model detayı ya da çoklu model karşılaştırması */}
         <div className={styles.detailColumn}>
-          {selectedModelId !== null ? (
-            <ModelDetailPanel modelId={selectedModelId} />
-          ) : (
+          {selectedModelIds.length === 0 && (
             <div className={styles.emptyWrap}>
               <EmptyState
                 icon={<LuChartSpline size={22} />}
                 title="Henüz bir model seçilmedi"
-                description="Metriklerini ve tahmin grafiğini görmek için soldaki listeden bir model seç."
+                description="Metriklerini ve tahmin grafiğini görmek için soldaki listeden bir model seç. Karşılaştırmak için 'Karşılaştır' modunu açıp birden fazla model seçebilirsin."
               />
             </div>
+          )}
+
+          {selectedModelIds.length === 1 && (
+            <ModelDetailPanel modelId={selectedModelIds[0]} />
+          )}
+
+          {selectedModelIds.length >= 2 && (
+            <Card>
+              <ModelComparisonView
+                modelIds={selectedModelIds}
+                onRemoveModel={handleRemoveFromComparison}
+              />
+            </Card>
           )}
         </div>
       </div>

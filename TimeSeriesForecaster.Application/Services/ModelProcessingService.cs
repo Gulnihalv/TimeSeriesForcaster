@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.Contracts.Persistence;
+using TimeSeriesForecaster.Application.DTOs;
 using TimeSeriesForecaster.Domain.Entities;
 
 namespace TimeSeriesForecaster.Application.Services;
@@ -49,9 +50,24 @@ public class ModelProcessingService : IModelProcessingService
                 ds = dp.Timestamp.ToString("o"), // Prophet'in anlaması için düzenleme
                 y = dp.Value
             }).ToList();
-    
+
+            // Model oluşturulurken kaydedilmiş hiperparametreler varsa deserialize edip ekliyoruz.
+            // JsonNamingPolicy.SnakeCaseLower ile serialize edeceğiz ki Python tarafı
+            // (seasonality_mode, changepoint_prior_scale vb.) doğru okusun.
+            ProphetHyperparametersDto? hyperparameters = string.IsNullOrEmpty(model.Hyperparameters)
+                ? null
+                : JsonSerializer.Deserialize<ProphetHyperparametersDto>(model.Hyperparameters, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            var requestPayload = new
+            {
+                data = trainingData,
+                hyperparameters
+            };
+
             var httpClient = _httpClientFactory.CreateClient();
-            var stringContent = new StringContent(JsonSerializer.Serialize(trainingData), Encoding.UTF8, "application/json");
+            var stringContent = new StringContent(
+                JsonSerializer.Serialize(requestPayload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower }),
+                Encoding.UTF8, "application/json");
             var httpResponse = await httpClient.PostAsync($"{_mlServiceSettings.BaseUrl}/train/{model.Algorithm!.ToLower()}", stringContent);
             if (!httpResponse.IsSuccessStatusCode)
             {
@@ -62,7 +78,7 @@ public class ModelProcessingService : IModelProcessingService
             var trainingResult = JsonSerializer.Deserialize<PythonTrainingResponse>(responseBody, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower // Python "model_path" -> C# "ModelPath" eşlemesi 
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower // Python "model_path" -> C# "ModelPath" eşlemesi için gerekli
             });
 
             if (trainingResult?.ModelPath == null)
