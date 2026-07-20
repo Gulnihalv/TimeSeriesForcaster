@@ -5,6 +5,8 @@ import { StatusBadge } from '../../../components/StatusBadge/StatusBadge';
 import { useApiData } from '../../../hooks/useApiData';
 import { getModelsForDataset, deleteModel, ModelStatus, type Model } from '../api/modelApi';
 import { getErrorMessage } from '../../../api/errorUtils';
+import { useToast } from '../../../components/Toast/ToastContext';
+import { TOAST_MESSAGES } from '../../../constants/messages';
 import { LuTrash2 } from 'react-icons/lu';
 import styles from './ModelList.module.css';
 
@@ -32,6 +34,8 @@ const ModelList: FC<ModelListProps> = ({ datasetId, selectedModelIds, onSelectio
     [datasetId],
     { fallbackErrorMessage: 'Modeller yüklenemedi.', shouldPoll, pollIntervalMs: 3000 }
   );
+
+  const { showToast } = useToast();
 
   const [compareMode, setCompareMode] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Model | null>(null);
@@ -80,6 +84,7 @@ const ModelList: FC<ModelListProps> = ({ datasetId, selectedModelIds, onSelectio
       setDeleteTarget(null);
       refetch();
       if (onModelDeleted) onModelDeleted(deletedId);
+      showToast(TOAST_MESSAGES.modelDeleted, 'success');
     } catch (err) {
       setDeleteError(getErrorMessage(err, 'Model silinemedi.'));
     } finally {

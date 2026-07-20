@@ -46,12 +46,3 @@
   background-color: var(--color-danger-bg);
   color: var(--color-danger-text);
 }
-
-.notReadyHint {
-  margin: var(--spacing-small) 0 0 0;
-  font-size: var(--font-size-caption);
-  color: var(--color-tone-amber-text);
-  background-color: var(--color-tone-amber-bg);
-  padding: 6px 10px;
-  border-radius: var(--border-radius-small);
-}

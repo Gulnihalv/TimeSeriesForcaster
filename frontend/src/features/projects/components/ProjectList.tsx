@@ -8,12 +8,14 @@ import styles from './ProjectList.module.css';
 import { useNavigate } from 'react-router-dom';
 import { useApiData } from '../../../hooks/useApiData';
 import { getErrorMessage } from '../../../api/errorUtils';
+import { useToast } from '../../../components/Toast/ToastContext';
+import { TOAST_MESSAGES } from '../../../constants/messages';
 import { LuFolderKanban, LuTrash2 } from 'react-icons/lu';
 
 const TONES = ['violet', 'green', 'amber', 'blue', 'rose'] as const;
 
 interface ProjectListProps {
-  /** Verilirse yalnızca en yeni N proje gösterilir (Dashboard'daki "Son projeler" için). */
+  /** Verilirse yalnızca en yeni N proje gösterilir (Dashboard'daki "Son projeler" için). Ama şimdilik gerekli değil*/
   limit?: number;
 }
 
@@ -24,6 +26,7 @@ const ProjectList = ({ limit }: ProjectListProps) => {
     { fallbackErrorMessage: 'Projeler yüklenemedi.' }
   );
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -47,6 +50,7 @@ const ProjectList = ({ limit }: ProjectListProps) => {
       await deleteProject(deleteTarget.id);
       setDeleteTarget(null);
       refetch();
+      showToast(TOAST_MESSAGES.projectDeleted, 'success');
     } catch (err) {
       setDeleteError(getErrorMessage(err, 'Proje silinemedi.'));
     } finally {

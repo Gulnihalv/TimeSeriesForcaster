@@ -15,6 +15,8 @@ import {
 import ForecastChart from './ForecastChart';
 import ModelComponentsPanel from './ModelComponentsPanel';
 import styles from './ModelDetailPanel.module.css';
+import { useToast } from '../../../components/Toast/ToastContext';
+import { TOAST_MESSAGES } from '../../../constants/messages';
 
 interface ModelDetailPanelProps {
   modelId: number;
@@ -33,6 +35,7 @@ const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
   const [triggerError, setTriggerError] = useState<string | null>(null);
   const [awaitingForecast, setAwaitingForecast] = useState(false);
   const predictionCountBeforeTrigger = useRef(0);
+  const { showToast } = useToast();
 
   const shouldPoll = useCallback(
     (model: ModelDetail) => model.status === ModelStatus.Training || awaitingForecast,
@@ -60,6 +63,7 @@ const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
     try {
       await generateForecast(modelId, horizon);
       setAwaitingForecast(true);
+      showToast(TOAST_MESSAGES.forecastTriggered, 'info');
     } catch (err) {
       setTriggerError(getErrorMessage(err, 'Tahmin oluşturulamadı.'));
     } finally {

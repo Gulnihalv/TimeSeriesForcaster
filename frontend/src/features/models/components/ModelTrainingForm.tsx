@@ -2,6 +2,8 @@ import { useState, type FC, type FormEvent } from 'react';
 import Button from '../../../components/Button/Button';
 import { getErrorMessage } from '../../../api/errorUtils';
 import { trainModel, type ProphetHyperparameters } from '../api/modelApi';
+import { useToast } from '../../../components/Toast/ToastContext';
+import { TOAST_MESSAGES } from '../../../constants/messages';
 import styles from './ModelTrainingForm.module.css';
 
 const ALGORITHMS = [
@@ -10,7 +12,6 @@ const ALGORITHMS = [
 
 interface ModelTrainingFormProps {
   datasetId: number;
-  /** Dataset henüz işlenmediyse veya hata aldıysa formu devre dışı bırak */
   disabled?: boolean;
   disabledReason?: string;
   onModelCreated: () => void;
@@ -25,8 +26,8 @@ const ModelTrainingForm: FC<ModelTrainingFormProps> = ({
   const [algorithm, setAlgorithm] = useState(ALGORITHMS[0].value);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
-  // Gelişmiş ayarlar - hepsi boş bırakılabilir, o zaman Prophet'in kendi varsayılanı kullanılır.
   const [seasonalityMode, setSeasonalityMode] = useState<'' | 'additive' | 'multiplicative'>('');
   const [changepointPriorScale, setChangepointPriorScale] = useState('');
   const [seasonalityPriorScale, setSeasonalityPriorScale] = useState('');
@@ -49,6 +50,7 @@ const ModelTrainingForm: FC<ModelTrainingFormProps> = ({
     try {
       await trainModel(datasetId, algorithm, buildHyperparameters());
       onModelCreated();
+      showToast(TOAST_MESSAGES.modelTrainingStarted, 'success');
     } catch (err) {
       setError(getErrorMessage(err, 'Model eğitimi başlatılamadı.'));
     } finally {

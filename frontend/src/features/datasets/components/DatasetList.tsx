@@ -8,6 +8,8 @@ import ConfirmDialog from '../../../components/ConfirmDialog/ConfirmDialog';
 import { ProcessingBadge } from '../../../components/StatusBadge/StatusBadge';
 import { useApiData } from '../../../hooks/useApiData';
 import { getErrorMessage } from '../../../api/errorUtils';
+import { useToast } from '../../../components/Toast/ToastContext';
+import { TOAST_MESSAGES } from '../../../constants/messages';
 import { LuDatabase, LuTrash2 } from 'react-icons/lu';
 import styles from './DatasetList.module.css';
 
@@ -25,17 +27,15 @@ const DatasetList: FC<DatasetListProps> = ({ projectId }) => {
     }
   );
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [deleteTarget, setDeleteTarget] = useState<Dataset | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [notReadyHintId, setNotReadyHintId] = useState<number | null>(null);
 
   const handleCardClick = (dataset: Dataset) => {
-    // TODO: gerçek toast sistemi kurulunca (Gün 18-19) bu satır-içi uyarıyı ona bağla
     if (!dataset.isProcessed && !dataset.errorMessage) {
-      setNotReadyHintId(dataset.id);
-      setTimeout(() => setNotReadyHintId((current) => (current === dataset.id ? null : current)), 2500);
+      showToast(TOAST_MESSAGES.datasetNotReady, 'info');
       return;
     }
     navigate(`/datasets/${dataset.id}`);
@@ -55,6 +55,7 @@ const DatasetList: FC<DatasetListProps> = ({ projectId }) => {
       await deleteDataset(deleteTarget.id);
       setDeleteTarget(null);
       refetch();
+      showToast(TOAST_MESSAGES.datasetDeleted, 'success');
     } catch (err) {
       setDeleteError(getErrorMessage(err, 'Dataset silinemedi.'));
     } finally {
@@ -106,9 +107,6 @@ const DatasetList: FC<DatasetListProps> = ({ projectId }) => {
             <small className={styles.datasetDate}>
               Yüklenme: {new Date(dataset.createdAt).toLocaleString('tr-TR')}
             </small>
-            {notReadyHintId === dataset.id && (
-              <p className={styles.notReadyHint}>Dataset henüz işleniyor, birkaç saniye sonra tekrar dene.</p>
-            )}
           </Card>
         ))}
       </div>
