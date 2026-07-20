@@ -8,6 +8,7 @@ using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Domain.Entities;
 using TimeSeriesForecaster.Infrastructure.Persistence;
 using TimeSeriesForecaster.WebAPI.Extensions;
+using TimeSeriesForecaster.WebAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,6 +73,8 @@ builder.Services.AddExternalServiceClients(builder.Configuration);
 
 // Controller ve Swagger servisleri
 builder.Services.AddControllers();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -94,6 +97,7 @@ builder.Services.AddSwaggerGen(options =>
 // --- Middleware Pipeline Konfigürasyonu ---
 
 var app = builder.Build();
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {

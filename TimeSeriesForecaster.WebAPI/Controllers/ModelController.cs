@@ -139,10 +139,5 @@ public class ModelController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
-        catch (Exception ex)
-        {
-            //  global exception middleware kurulunca bu catch kaldırılcak
-            return StatusCode(StatusCodes.Status502BadGateway, ex.Message);
-        }
     }
 }
