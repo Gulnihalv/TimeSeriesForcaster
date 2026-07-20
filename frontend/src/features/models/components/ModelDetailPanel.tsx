@@ -13,6 +13,7 @@ import {
   type ModelDetail,
 } from '../api/modelApi';
 import ForecastChart from './ForecastChart';
+import ModelComponentsPanel from './ModelComponentsPanel';
 import styles from './ModelDetailPanel.module.css';
 
 interface ModelDetailPanelProps {
@@ -122,6 +123,10 @@ const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
             </Button>
           </div>
         </form>
+      )}
+
+      {model.status === ModelStatus.Completed && (
+        <ModelComponentsPanel modelId={modelId} />
       )}
     </Card>
   );

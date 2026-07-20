@@ -115,4 +115,34 @@ public class ModelController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpGet("{id}/components")]
+    public async Task<IActionResult> GetModelComponents(int id)
+    {
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized("User id bulunmadı");
+        }
+
+        try
+        {
+            var components = await _modelService.GetModelComponentsAsync(id, userId.Value);
+            if (components == null)
+            {
+                return NotFound("Model bulunamadı veya bu kullanıcıya ait değil.");
+            }
+
+            return Ok(components);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            //  global exception middleware kurulunca bu catch kaldırılcak
+            return StatusCode(StatusCodes.Status502BadGateway, ex.Message);
+        }
+    }
 }

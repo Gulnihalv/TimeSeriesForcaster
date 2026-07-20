@@ -10,4 +10,5 @@ public interface IModelService
     Task<ModelDto?> TrainModelAsync(int datasetId, int userId, string algorithm, ProphetHyperparametersDto? hyperparameters = null);
     Task<bool> GenerateForecastAsync(int modelId, int userId, int horizon);
     Task<bool> DeleteModelAsync(int modelId, int userId);
+    Task<ModelComponentsDto?> GetModelComponentsAsync(int modelId, int userId);
 }

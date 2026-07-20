@@ -106,6 +106,55 @@ def predictModel(request: PredictRequest):
 
     return { "success": True, "predictions": result }
 
+class ComponentsRequest(BaseModel):
+    model_path: str
+
+@app.post("/components/prophet")
+def getComponents(request: ComponentsRequest):
+    if not os.path.exists(request.model_path):
+        raise HTTPException(status_code=404, detail="Belirtilen model dosyası bulunamadı.")
+
+    with open(request.model_path, 'r') as fin:
+        prophet = model_from_json(fin.read())
+
+    # Geleceğe değil, eğitim verisinin kapsadığı tarihlere göre bileşenleri hesaplıyoruz
+    history = prophet.history[['ds']].copy()
+    forecast = prophet.predict(history)
+
+    def to_points(df, label_col, value_col):
+        result = df[[label_col, value_col]].copy()
+        result[label_col] = result[label_col].astype(str)
+        return result.rename(columns={label_col: 'label', value_col: 'value'}).to_dict(orient='records')
+
+    trend_df = forecast[['ds', 'trend']].copy()
+    trend_df['ds'] = trend_df['ds'].astype(str)
+    trend = to_points(trend_df, 'ds', 'trend')
+
+    # Haftalık pattern: haftanın her günü (0=Pazartesi..6=Pazar) için ortalama etkiyi hesaplıyoruz,
+    # tüm geçmiş satırları değil - 7 noktalık okunabilir bir özet istiyoruz.
+    weekly = None
+    if 'weekly' in forecast.columns:
+        weekly_df = forecast[['ds', 'weekly']].copy()
+        weekly_df['day_of_week'] = pd.to_datetime(weekly_df['ds']).dt.dayofweek
+        weekly_avg = weekly_df.groupby('day_of_week')['weekly'].mean().reset_index().sort_values('day_of_week')
+        weekly = [{"label": str(int(row['day_of_week'])), "value": row['weekly']} for _, row in weekly_avg.iterrows()]
+
+    # Yıllık pattern: az veri noktalı dataset'lerde Prophet bunu hiç üretmeyebilir (normal durum).
+    yearly = None
+    if 'yearly' in forecast.columns:
+        yearly_df = forecast[['ds', 'yearly']].copy()
+        yearly_df['day_of_year'] = pd.to_datetime(yearly_df['ds']).dt.dayofyear
+        yearly_avg = yearly_df.groupby('day_of_year')['yearly'].mean().reset_index().sort_values('day_of_year')
+        yearly_avg = yearly_avg.iloc[::5]  # 365 nokta yerine örnekleyerek grafiği okunur tutuyoruz
+        yearly = [{"label": str(int(row['day_of_year'])), "value": row['yearly']} for _, row in yearly_avg.iterrows()]
+
+    return {
+        "success": True,
+        "trend": trend,
+        "weekly": weekly,
+        "yearly": yearly,
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)

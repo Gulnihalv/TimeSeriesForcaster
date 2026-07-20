@@ -50,6 +50,17 @@ export interface ModelDetail extends Model {
   metrics: ModelMetric[];
 }
 
+export interface ComponentPoint {
+  label: string;
+  value: number;
+}
+
+export interface ModelComponents {
+  trend: ComponentPoint[];
+  weekly: ComponentPoint[] | null;
+  yearly: ComponentPoint[] | null;
+}
+
 // Prophet'in onlarca parametresi var, en çok etkisi olan birkaçını sunuyoruz.
 // Hepsi opsiyonel - gönderilmezse backend/Prophet kendi varsayılanlarını kullanır.
 export interface ProphetHyperparameters {
@@ -92,4 +103,9 @@ export const generateForecast = async (
 
 export const deleteModel = async (modelId: number): Promise<void> => {
   await apiClient.delete(`/models/${modelId}`);
+};
+
+export const getModelComponents = async (modelId: number): Promise<ModelComponents> => {
+  const response = await apiClient.get<ModelComponents>(`/models/${modelId}/components`);
+  return response.data;
 };
