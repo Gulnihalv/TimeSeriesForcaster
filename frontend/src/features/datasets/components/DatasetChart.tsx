@@ -8,12 +8,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { useApiData } from '../../../hooks/useApiData';
-import { getDataPointsForDataset, type DataPoint } from '../api/datasetApi';
+import type { DataPoint } from '../api/datasetApi';
 import styles from './DatasetChart.module.css';
 
 interface DatasetChartProps {
-  datasetId: number;
+  dataPoints: DataPoint[];
 }
 
 interface ChartPoint {
@@ -30,23 +29,12 @@ interface OutlierDotProps {
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString();
 
-// Şu an backend'de gerçek bir outlier tespiti yapılmıyor (IsOutlier her zaman false),
-// ama ileride eklenince bu nokta otomatik olarak kırmızı işaretlenecek - ekstra bir
-// frontend değişikliği gerekmeden.
 const OutlierDot = ({ cx, cy, payload }: OutlierDotProps) => {
   if (!payload?.isOutlier || cx === undefined || cy === undefined) return null;
   return <circle cx={cx} cy={cy} r={4} fill="var(--color-danger-text)" stroke="#fff" strokeWidth={1} />;
 };
 
-const DatasetChart: FC<DatasetChartProps> = ({ datasetId }) => {
-  const { data: dataPoints, isLoading, error } = useApiData<DataPoint[]>(
-    () => getDataPointsForDataset(datasetId),
-    [datasetId],
-    { fallbackErrorMessage: 'Veri noktaları yüklenemedi.' }
-  );
-
-  if (isLoading) return <p className={styles.empty}>Grafik yükleniyor...</p>;
-  if (error) return <p className={styles.empty}>{error}</p>;
+const DatasetChart: FC<DatasetChartProps> = ({ dataPoints }) => {
   if (!dataPoints || dataPoints.length === 0) {
     return <p className={styles.empty}>Görüntülenecek veri yok.</p>;
   }

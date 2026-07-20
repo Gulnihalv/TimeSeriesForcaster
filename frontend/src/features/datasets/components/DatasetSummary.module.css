@@ -47,3 +47,27 @@
   border-radius: var(--border-radius-medium);
   margin-top: var(--spacing-medium);
 }
+
+.statisticsSection {
+  margin-top: var(--spacing-large);
+  padding-top: var(--spacing-medium);
+  border-top: 1px solid var(--color-border);
+}
+
+.statisticsTitle {
+  margin: 0 0 var(--spacing-small) 0;
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.statisticsEmpty {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  margin: 0;
+}
+
+.statSub {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}

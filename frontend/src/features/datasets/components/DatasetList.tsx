@@ -29,9 +29,16 @@ const DatasetList: FC<DatasetListProps> = ({ projectId }) => {
   const [deleteTarget, setDeleteTarget] = useState<Dataset | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [notReadyHintId, setNotReadyHintId] = useState<number | null>(null);
 
-  const handleCardClick = (datasetId: number) => {
-    navigate(`/datasets/${datasetId}`);
+  const handleCardClick = (dataset: Dataset) => {
+    // TODO: gerçek toast sistemi kurulunca (Gün 18-19) bu satır-içi uyarıyı ona bağla
+    if (!dataset.isProcessed && !dataset.errorMessage) {
+      setNotReadyHintId(dataset.id);
+      setTimeout(() => setNotReadyHintId((current) => (current === dataset.id ? null : current)), 2500);
+      return;
+    }
+    navigate(`/datasets/${dataset.id}`);
   };
 
   const handleDeleteClick = (e: React.MouseEvent, dataset: Dataset) => {
@@ -75,7 +82,7 @@ const DatasetList: FC<DatasetListProps> = ({ projectId }) => {
           <Card
             key={dataset.id}
             interactive
-            onClick={() => handleCardClick(dataset.id)}
+            onClick={() => handleCardClick(dataset)}
             className={styles.datasetCard}
           >
             <div className={styles.datasetCardHeader}>
@@ -99,6 +106,9 @@ const DatasetList: FC<DatasetListProps> = ({ projectId }) => {
             <small className={styles.datasetDate}>
               Yüklenme: {new Date(dataset.createdAt).toLocaleString('tr-TR')}
             </small>
+            {notReadyHintId === dataset.id && (
+              <p className={styles.notReadyHint}>Dataset henüz işleniyor, birkaç saniye sonra tekrar dene.</p>
+            )}
           </Card>
         ))}
       </div>

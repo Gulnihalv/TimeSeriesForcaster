@@ -8,7 +8,9 @@ import ModelList from '../features/models/components/ModelList';
 import ModelDetailPanel from '../features/models/components/ModelDetailPanel';
 import ModelComparisonView from '../features/models/components/ModelComparisonView';
 import EmptyState from '../components/EmptyState/EmptyState';
-import type { Dataset } from '../features/datasets/api/datasetApi';
+import Spinner from '../components/Spinner/Spinner';
+import { useApiData } from '../hooks/useApiData';
+import { getDataPointsForDataset, type Dataset, type DataPoint } from '../features/datasets/api/datasetApi';
 import { LuChartSpline } from 'react-icons/lu';
 import styles from './DatasetDetailPage.module.css';
 
@@ -24,16 +26,25 @@ const DatasetDetailPage = () => {
     setDataset(loaded);
   }, []);
 
+  // Dataset işlendikten sonra ham veri noktalarını TEK SEFERDE çekip hem
+  // DatasetSummary (istatistikler) hem DatasetChart (grafik) ile paylaşıyoruz -
+  // ikisi de kendi ayrı fetch'ini yapmıyor.
+  const { data: dataPoints, isLoading: pointsLoading, error: pointsError } = useApiData<DataPoint[]>(
+    () => (dataset?.isProcessed ? getDataPointsForDataset(id) : Promise.resolve([])),
+    [id, dataset?.isProcessed],
+    { fallbackErrorMessage: 'Veri noktaları yüklenemedi.' }
+  );
+
   const handleModelCreated = () => {
     setModelListKey((prev) => prev + 1);
   };
 
   const handleModelDeleted = (deletedModelId: number) => {
-    setSelectedModelIds((current) => current.filter((id) => id !== deletedModelId));
+    setSelectedModelIds((current) => current.filter((mid) => mid !== deletedModelId));
   };
 
   const handleRemoveFromComparison = (modelId: number) => {
-    setSelectedModelIds((current) => current.filter((id) => id !== modelId));
+    setSelectedModelIds((current) => current.filter((mid) => mid !== modelId));
   };
 
   if (id === 0 || Number.isNaN(id)) {
@@ -51,21 +62,30 @@ const DatasetDetailPage = () => {
 
   return (
     <div>
-      {/* Üst hero bölümü: dataset özeti + ham veri grafiği, iki ayrı kart olarak, koyu bir çerçeve kart içinde */}
+      {/* Üst hero bölümü: dataset özeti (+ istatistikler) + ham veri grafiği, koyu çerçeve kart içinde */}
       <Card tone="dark" className={styles.heroWrapper}>
         <div className={styles.heroRow}>
-          <DatasetSummary datasetId={id} onLoaded={handleDatasetLoaded} />
+          <DatasetSummary
+            datasetId={id}
+            onLoaded={handleDatasetLoaded}
+            dataPoints={dataPoints}
+            dataPointsLoading={pointsLoading}
+          />
 
           <Card className={styles.chartCard}>
             <h3 className={styles.sectionTitle}>Ham veri grafiği</h3>
-            {dataset?.isProcessed ? (
-              <DatasetChart datasetId={id} />
-            ) : (
+            {!dataset?.isProcessed ? (
               <p className={styles.chartPlaceholder}>
                 {dataset?.errorMessage
                   ? 'Dataset işlenirken hata oluştu, grafik gösterilemiyor.'
                   : 'Dataset işlendikten sonra grafik burada görünecek.'}
               </p>
+            ) : pointsLoading ? (
+              <Spinner label="Veriler yükleniyor..." />
+            ) : pointsError ? (
+              <p className={styles.chartPlaceholder}>{pointsError}</p>
+            ) : (
+              <DatasetChart dataPoints={dataPoints ?? []} />
             )}
           </Card>
         </div>
