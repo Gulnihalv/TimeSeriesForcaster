@@ -31,6 +31,7 @@ export const login = async (data: LoginRequest) => {
   useAuthStore.getState().login(token, {
     email: decodedUser.email,
     firstName: decodedUser.firstname,
+    lastName: decodedUser.lastname,
   });
 
   return response.data;

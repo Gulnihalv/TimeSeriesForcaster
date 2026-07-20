@@ -1,9 +1,9 @@
 import { LuChartLine } from 'react-icons/lu';
 import { Link } from 'react-router-dom';
-import LoginForm from '../features/authentication/components/LoginForm';
+import RegisterForm from '../features/authentication/components/RegisterForm';
 import styles from './LoginPage.module.css';
 
-const LoginPage = () => {
+const RegisterPage = () => {
   return (
     <div className={styles.container}>
       <div className={styles.stack}>
@@ -13,13 +13,13 @@ const LoginPage = () => {
           </span>
           <span className={styles.brandName}>Tahmin Platformu</span>
         </div>
-        <LoginForm />
+        <RegisterForm />
         <p style={{ textAlign: 'center', marginTop: 16, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-          Hesabın yok mu? <Link to="/register">Kayıt ol</Link>
+          Zaten hesabın var mı? <Link to="/login">Giriş yap</Link>
         </p>
       </div>
     </div>
   );
 };
 
-export default LoginPage;
+export default RegisterPage;

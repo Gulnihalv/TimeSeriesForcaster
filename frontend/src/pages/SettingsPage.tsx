@@ -26,7 +26,8 @@ const UPCOMING_SECTIONS = [
 
 const SettingsPage = () => {
   const user = useAuthStore((state) => state.user);
-  const initials = user ? `${user.firstName?.[0] ?? ''}`.toUpperCase() : '?';
+  const fullName = user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : '';
+  const initials = user ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() : '?';
 
   return (
     <div className={styles.grid}>
@@ -34,7 +35,7 @@ const SettingsPage = () => {
         <div className={styles.profileHeader}>
           <span className={styles.avatar}>{initials}</span>
           <div>
-            <h2 className={styles.name}>{user?.firstName || 'Kullanıcı'}</h2>
+            <h2 className={styles.name}>{fullName || 'Kullanıcı'}</h2>
             <p className={styles.email}>{user?.email || '—'}</p>
           </div>
         </div>
@@ -43,7 +44,7 @@ const SettingsPage = () => {
         </p>
       </Card>
 
-      <div className={styles.sectionList}>
+      {/* <div className={styles.sectionList}>
         {UPCOMING_SECTIONS.map(({ icon: Icon, tone, title, description }) => (
           <Card key={title} className={styles.sectionCard}>
             <div className={`${styles.sectionIcon} ${styles[`tone_${tone}`]}`}>
@@ -58,14 +59,7 @@ const SettingsPage = () => {
             </div>
           </Card>
         ))}
-      </div>
-
-      <Card className={styles.aboutCard} tone="dark">
-        <LuUserRound size={22} />
-        <p className={styles.aboutText}>
-          Bu sayfa geliştirilmeye devam ediyor. Eklenmesini istediğin bir ayar varsa proje ekibine iletebilirsin.
-        </p>
-      </Card>
+      </div> */}
     </div>
   );
 };
