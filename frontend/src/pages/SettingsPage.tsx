@@ -1,6 +1,6 @@
 import Card from '../components/Card/Card';
 import { useAuthStore } from '../store/authStore';
-import { LuUserRound, LuBellRing, LuPalette, LuShieldCheck } from 'react-icons/lu';
+import { LuBellRing, LuPalette, LuShieldCheck } from 'react-icons/lu';
 import styles from './SettingsPage.module.css';
 
 const UPCOMING_SECTIONS = [
