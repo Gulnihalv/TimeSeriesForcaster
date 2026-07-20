@@ -1,27 +1,36 @@
 .heroWrapper {
   margin-bottom: var(--spacing-large);
+  padding: var(--spacing-medium) var(--spacing-large);
 }
 
-.heroRow {
-  display: flex;
-  gap: var(--spacing-large);
-  align-items: stretch;
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(200px, 300px) 1fr;
+  grid-template-rows: auto auto auto;
+  column-gap: 28px;
+  row-gap: var(--spacing-small);
 }
 
-.heroRow > * {
-  flex: 1;
-  min-width: 0;
-}
-
-.chartCard {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-small);
+.heroChartArea {
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 210px;
 }
 
 .chartPlaceholder {
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.5);
   margin: 0;
+}
+
+@media (max-width: 960px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroChartArea {
+    grid-column: 1;
+    grid-row: auto;
+  }
 }
 
 .pageContainer {
@@ -70,9 +79,5 @@
 @media (max-width: 960px) {
   .pageContainer {
     grid-template-columns: 1fr;
-  }
-
-  .heroRow {
-    flex-direction: column;
   }
 }

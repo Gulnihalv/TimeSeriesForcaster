@@ -62,9 +62,9 @@ const DatasetDetailPage = () => {
 
   return (
     <div>
-      {/* Üst hero bölümü: dataset özeti (+ istatistikler) + ham veri grafiği, koyu çerçeve kart içinde */}
+      {/* Üst hero bölümü: dataset özeti, ikon satırları, istatistikler ve ham veri grafiği tek koyu kart içinde */}
       <Card tone="dark" className={styles.heroWrapper}>
-        <div className={styles.heroRow}>
+        <div className={styles.heroGrid}>
           <DatasetSummary
             datasetId={id}
             onLoaded={handleDatasetLoaded}
@@ -72,8 +72,7 @@ const DatasetDetailPage = () => {
             dataPointsLoading={pointsLoading}
           />
 
-          <Card className={styles.chartCard}>
-            <h3 className={styles.sectionTitle}>Ham veri grafiği</h3>
+          <div className={styles.heroChartArea}>
             {!dataset?.isProcessed ? (
               <p className={styles.chartPlaceholder}>
                 {dataset?.errorMessage
@@ -87,7 +86,7 @@ const DatasetDetailPage = () => {
             ) : (
               <DatasetChart dataPoints={dataPoints ?? []} />
             )}
-          </Card>
+          </div>
         </div>
       </Card>
 
