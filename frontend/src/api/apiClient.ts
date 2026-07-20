@@ -21,4 +21,20 @@ apiClient.interceptors.request.use((config) => {
     }
 );
 
-export default apiClient; // İstemciyi dışarı aktarıyoruz.
+const AUTH_ENDPOINTS = ['/authentication/login', '/authentication/register'];
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const isAuthEndpoint = AUTH_ENDPOINTS.some((path) => error.config?.url?.includes(path));
+
+    if (error.response?.status === 401 && !isAuthEndpoint) {
+      useAuthStore.getState().logout();
+      window.location.href = '/login';
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default apiClient;
