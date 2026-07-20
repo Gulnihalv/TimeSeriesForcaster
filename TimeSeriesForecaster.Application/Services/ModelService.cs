@@ -3,6 +3,7 @@ using System.Text.Json;
 using AutoMapper;
 using Hangfire;
 using Microsoft.Extensions.Options;
+using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.Contracts.Persistence;
@@ -135,24 +136,24 @@ public class ModelService : IModelService
         return modelDetailDto;
     }
 
-    public async Task<bool> GenerateForecastAsync(int modelId, int userId, int horizon)
+    public async Task<Result> GenerateForecastAsync(int modelId, int userId, int horizon)
     {
         var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
         if (!userOwnsModel)
         {
-            throw new UnauthorizedAccessException("Bu model üzerinde işlem yapılamaz.");
+            return Result.Failure(ResultErrorType.Forbidden, "Bu model üzerinde işlem yapılamaz.");
         }
 
         var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: false);
         if (model == null || model.Status != ModelStatus.Completed)
         {
-            throw new InvalidOperationException("Tahmin üretebilmek için modelin eğitiminin tamamlanmış olması gerekir.");
+            return Result.Failure(ResultErrorType.ValidationError, "Tahmin üretebilmek için modelin eğitiminin tamamlanmış olması gerekir.");
         }
 
         _backgroundJobClient.Enqueue<IForecastingService>(service =>
             service.ProcessForecastAsync(modelId, horizon, CancellationToken.None));
 
-        return true;
+        return Result.Success();
     }
 
     public async Task<bool> DeleteModelAsync(int modelId, int userId)

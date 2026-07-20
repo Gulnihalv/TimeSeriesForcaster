@@ -9,7 +9,7 @@ namespace TimeSeriesForecaster.WebAPI.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/models")]
-public class ModelController : ControllerBase
+public class ModelController : ApiControllerBase
 {
     private readonly IModelService _modelService;
 
@@ -83,19 +83,8 @@ public class ModelController : ControllerBase
             return Unauthorized("User id bulunmadı");
         }
 
-        try
-        {
-            await _modelService.GenerateForecastAsync(modelId: id, userId: userId.Value, horizon: request.Horizon);
-            return Accepted(); // arka planda Hangfire job'ı işleyecek, henüz sonuç hazır değil
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var result = await _modelService.GenerateForecastAsync(modelId: id, userId: userId.Value, horizon: request.Horizon);
+        return ToActionResult(result, () => Accepted());
     }
 
     [HttpDelete("{id}")]

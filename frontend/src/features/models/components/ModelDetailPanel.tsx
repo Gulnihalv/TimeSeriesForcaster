@@ -4,7 +4,7 @@ import { StatusBadge } from '../../../components/StatusBadge/StatusBadge';
 import Button from '../../../components/Button/Button';
 import Input from '../../../components/Input/Input';
 import { useApiData } from '../../../hooks/useApiData';
-import { getErrorMessage } from '../../../api/errorUtils';
+import { toResult } from '../../../api/result';
 import {
   getModelById,
   generateForecast,
@@ -14,9 +14,9 @@ import {
 } from '../api/modelApi';
 import ForecastChart from './ForecastChart';
 import ModelComponentsPanel from './ModelComponentsPanel';
-import styles from './ModelDetailPanel.module.css';
 import { useToast } from '../../../components/Toast/ToastContext';
 import { TOAST_MESSAGES } from '../../../constants/messages';
+import styles from './ModelDetailPanel.module.css';
 
 interface ModelDetailPanelProps {
   modelId: number;
@@ -60,15 +60,17 @@ const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
     setIsTriggering(true);
     setTriggerError(null);
     predictionCountBeforeTrigger.current = model.predictions.length;
-    try {
-      await generateForecast(modelId, horizon);
+
+    const result = await toResult(generateForecast(modelId, horizon), 'Tahmin oluşturulamadı.');
+
+    if (result.success) {
       setAwaitingForecast(true);
       showToast(TOAST_MESSAGES.forecastTriggered, 'info');
-    } catch (err) {
-      setTriggerError(getErrorMessage(err, 'Tahmin oluşturulamadı.'));
-    } finally {
-      setIsTriggering(false);
+    } else {
+      setTriggerError(result.error);
     }
+
+    setIsTriggering(false);
   };
 
   if (isLoading) return <Card>Model detayı yükleniyor...</Card>;
