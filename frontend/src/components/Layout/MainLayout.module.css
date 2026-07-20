@@ -110,17 +110,6 @@
   color: var(--color-primary);
 }
 
-.notificationDot {
-  position: absolute;
-  top: 9px;
-  right: 10px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background-color: var(--color-tone-rose-text);
-  border: 2px solid var(--color-surface);
-}
-
 .userChip {
   display: flex;
   align-items: center;

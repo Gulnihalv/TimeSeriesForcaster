@@ -15,15 +15,19 @@ public class ModelProcessingService : IModelProcessingService
     private readonly IDataPointRepository _dataPointRepository;
     private readonly IModelRepository _modelRepository;
     private readonly IModelMetricRepository _modelMetricRepository;
+    private readonly IProjectRepository _projectRepository;
+    private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly MlServiceSettings _mlServiceSettings;
 
-    public ModelProcessingService(IHttpClientFactory httpClientFactory, IDataPointRepository dataPointRepository, IModelRepository modelRepository, IModelMetricRepository modelMetricRepository, IUnitOfWork unitOfWork, IOptions<MlServiceSettings> mlServiceSettings)
+    public ModelProcessingService(IHttpClientFactory httpClientFactory, IDataPointRepository dataPointRepository, IModelRepository modelRepository, IModelMetricRepository modelMetricRepository, IProjectRepository projectRepository, INotificationService notificationService, IUnitOfWork unitOfWork, IOptions<MlServiceSettings> mlServiceSettings)
     {
         _httpClientFactory = httpClientFactory;
         _dataPointRepository = dataPointRepository;
         _modelRepository = modelRepository;
         _modelMetricRepository = modelMetricRepository;
+        _projectRepository = projectRepository;
+        _notificationService = notificationService;
         _unitOfWork = unitOfWork;
         _mlServiceSettings = mlServiceSettings.Value;
     }
@@ -51,9 +55,6 @@ public class ModelProcessingService : IModelProcessingService
                 y = dp.Value
             }).ToList();
 
-            // Model oluşturulurken kaydedilmiş hiperparametreler varsa deserialize edip ekliyoruz.
-            // JsonNamingPolicy.SnakeCaseLower ile serialize edeceğiz ki Python tarafı
-            // (seasonality_mode, changepoint_prior_scale vb.) doğru okusun.
             ProphetHyperparametersDto? hyperparameters = string.IsNullOrEmpty(model.Hyperparameters)
                 ? null
                 : JsonSerializer.Deserialize<ProphetHyperparametersDto>(model.Hyperparameters, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -78,7 +79,7 @@ public class ModelProcessingService : IModelProcessingService
             var trainingResult = JsonSerializer.Deserialize<PythonTrainingResponse>(responseBody, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower // Python "model_path" -> C# "ModelPath" eşlemesi için gerekli
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
             });
 
             if (trainingResult?.ModelPath == null)
@@ -92,8 +93,6 @@ public class ModelProcessingService : IModelProcessingService
             model.ModelFilePath = modelPath;
             model.ErrorMessage = null;
 
-            // Holdout metrikleri varsa (yeterli veri noktası olduğunda Python tarafı hesaplıyor) kaydet.
-            // Az veri noktalı durumlarda Python "metrics": null döner, bu durumda hiç metrik yazmıyoruz.
             if (trainingResult?.Metrics != null)
             {
                 var calculatedAt = DateTime.UtcNow;
@@ -118,16 +117,31 @@ public class ModelProcessingService : IModelProcessingService
                 await _modelMetricRepository.CreateMetricsAsync(metricEntities);
             }
 
-        }catch (Exception ex)
+            await NotifyModelResultAsync(model, success: true);
+        }
+        catch (Exception ex)
         {
             model.Status = ModelStatus.Failed;
             model.ErrorMessage = ex.Message;
+            await NotifyModelResultAsync(model, success: false);
         }
         finally
         {
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
-        
+    }
+
+    private async Task NotifyModelResultAsync(Model model, bool success)
+    {
+        var project = await _projectRepository.GetProjectByIdAsync(id: model.ProjectId, trackChanges: false);
+        if (project == null) return;
+
+        var type = success ? NotificationType.ModelTrainingCompleted : NotificationType.ModelTrainingFailed;
+        var message = success
+            ? $"\"{model.ModelName}\" modelinin eğitimi tamamlandı."
+            : $"\"{model.ModelName}\" modelinin eğitimi başarısız oldu: {model.ErrorMessage}";
+
+        await _notificationService.CreateNotificationAsync(project.UserId, type, message, "Model", model.Id);
     }
 
     private class PythonTrainingResponse

@@ -17,5 +17,6 @@ public class MappingProfile : Profile
         CreateMap<ModelMetric, ModelMetricDto>();
         CreateMap<Model, ModelDetailDto>()
             .ForMember(dest => dest.Metrics, opt => opt.MapFrom(src => src.ModelMetrics));
+        CreateMap<Notification, NotificationDto>();
     }
 }

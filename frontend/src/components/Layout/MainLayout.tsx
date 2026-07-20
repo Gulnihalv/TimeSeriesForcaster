@@ -1,7 +1,8 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import NotificationBell from '../NotificationBell/NotificationBell';
 import { useAuthStore } from '../../store/authStore';
-import { LuBell, LuSearch } from 'react-icons/lu';
+import { LuSearch } from 'react-icons/lu';
 import styles from './MainLayout.module.css';
 
 const PAGE_META: { pattern: string; title: string; subtitle: string }[] = [
@@ -15,7 +16,6 @@ const PAGE_META: { pattern: string; title: string; subtitle: string }[] = [
 const usePageMeta = () => {
   const location = useLocation();
   for (const meta of PAGE_META) {
-    // useMatch tek bir pattern için çalıştığından burada basit bir kontrol yeterli
     if (matchPattern(meta.pattern, location.pathname)) return meta;
   }
   return { title: 'Genel Bakış', subtitle: '' };
@@ -51,10 +51,8 @@ const MainLayout = () => {
               <input type="text" placeholder="Ara..." aria-label="Ara" />
             </label>
 
-            <button className={styles.iconButton} aria-label="Bildirimler">
-              <LuBell size={19} />
-              <span className={styles.notificationDot} />
-            </button>
+            <NotificationBell />
+
             {user && (
               <div className={styles.userChip}>
                 <span className={styles.avatar}>{initials}</span>
