@@ -37,5 +37,5 @@
 .brandName {
   font-weight: 700;
   font-size: 1.05rem;
-  color: var(--color-text);
+  color: var(--color-primary);
 }
