@@ -35,20 +35,20 @@ public class ModelService : IModelService
         _mlServiceSettings = mlServiceSettings.Value;
     }
 
-    public async Task<IEnumerable<ModelDto>> GetAllModelsForDatasetAsync(int datasetId, int userId)
+    public async Task<Result<IEnumerable<ModelDto>>> GetAllModelsForDatasetAsync(int datasetId, int userId)
     {
         var userOwnsDataset = await _datasetRepository.UserOwnsDatasetAsync(datasetId: datasetId, userId: userId);
         if (!userOwnsDataset)
         {
-            return new List<ModelDto>(); // boşliste
+            return Result.Failure<IEnumerable<ModelDto>>(ResultErrorType.Forbidden, "Bu veri seti üzerinde işlem yapılamaz.");
         }
 
         var models = await _modelRepository.GetModelsForDatasetAsync(datasetId: datasetId, trackChanges: false);
         var modelDto = _mapper.Map<IEnumerable<ModelDto>>(models);
-        return modelDto;
+        return Result.Success(modelDto);
     }
 
-    public async Task<ModelDto?> GetModelByIdAsync(int modelId, int userId)
+    public async Task<Result<ModelDto?>> GetModelByIdAsync(int modelId, int userId)
     {
         var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
         if (!userOwnsModel)
@@ -59,18 +59,18 @@ public class ModelService : IModelService
         var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: false);
         if (model == null)
         {
-            return null;
+            return Result.Failure<ModelDto?>(ResultErrorType.NotFound, "Model bulunamadı.");
         }
         var modelDto = _mapper.Map<ModelDto>(model);
-        return modelDto;
+        return Result.Success(modelDto);
     }
 
-    public async Task<ModelDto?> TrainModelAsync(int datasetId, int userId, string algorithm, ProphetHyperparametersDto? hyperparameters = null)
+    public async Task<Result<ModelDto?>> TrainModelAsync(int datasetId, int userId, string algorithm, ProphetHyperparametersDto? hyperparameters = null)
     {
         var userOwnsDataset = await _datasetRepository.UserOwnsDatasetAsync(datasetId: datasetId, userId: userId);
         if (!userOwnsDataset)
         {
-            throw new UnauthorizedAccessException("Bu veri seti üzerinde işlem yapılamaz.");
+            return Result.Failure<ModelDto?>(ResultErrorType.Forbidden, "Bu veri seti üzerinde işlem yapılamaz.");
         }
 
         var dataset = await _datasetRepository.GetDatasetByIdAsync(id: datasetId, trackChanges: false);
@@ -108,32 +108,32 @@ public class ModelService : IModelService
             modelEntity.Status = ModelStatus.Failed;
             modelEntity.ErrorMessage = $"Model Enqueue'da hata oluştu: {ex.Message}";
             await _unitOfWork.SaveChangesAsync();
-            return null;
+            return Result.Failure<ModelDto?>(ResultErrorType.Unexpected, modelEntity.ErrorMessage);
         }
 
         modelEntity.HangfireJobId = jobId;
         await _unitOfWork.SaveChangesAsync();
 
         var modelDto = _mapper.Map<ModelDto>(modelEntity);
-        return modelDto;
+        return Result.Success<ModelDto?>(modelDto);
     }
 
-    public async Task<ModelDetailDto?> GetModelDetailByIdAsync(int modelId, int userId)
+    public async Task<Result<ModelDetailDto?>> GetModelDetailByIdAsync(int modelId, int userId)
     {
         var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
         if (!userOwnsModel)
         {
-            return null;
+            return Result.Failure<ModelDetailDto?>(ResultErrorType.Forbidden, "Bu model üzerinde işlem yapılamaz.");
         }
 
         var model = await _modelRepository.GetModelWithMetricsAsync(id: modelId, trackChanges: false);
         if (model == null)
         {
-            return null;
+            return Result.Failure<ModelDetailDto?>(ResultErrorType.NotFound, "Model bulunamadı.");
         }
 
         var modelDetailDto = _mapper.Map<ModelDetailDto>(model);
-        return modelDetailDto;
+        return Result.Success<ModelDetailDto?>(modelDetailDto);
     }
 
     public async Task<Result> GenerateForecastAsync(int modelId, int userId, int horizon)
@@ -156,44 +156,44 @@ public class ModelService : IModelService
         return Result.Success();
     }
 
-    public async Task<bool> DeleteModelAsync(int modelId, int userId)
+    public async Task<Result> DeleteModelAsync(int modelId, int userId)
     {
         var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
         if (!userOwnsModel)
         {
-            return false;
+            return Result.Failure(ResultErrorType.Forbidden, "Bu model üzerinde işlem yapılamaz.");
         }
 
         var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: true);
         if (model == null)
         {
-            return false;
+            return Result.Failure(ResultErrorType.NotFound, "Model bulunamadı.");
         }
 
         model.IsActive = false;
         _modelRepository.UpdateModel(model);
         await _unitOfWork.SaveChangesAsync();
 
-        return true;
+        return Result.Success();
     }
 
-    public async Task<ModelComponentsDto?> GetModelComponentsAsync(int modelId, int userId)
+    public async Task<Result<ModelComponentsDto?>> GetModelComponentsAsync(int modelId, int userId)
     {
         var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
         if (!userOwnsModel)
         {
-            return null;
+            return Result.Failure<ModelComponentsDto?>(ResultErrorType.Forbidden, "Bu model üzerinde işlem yapılamaz.");
         }
  
         var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: false);
         if (model == null)
         {
-            return null;
+            return Result.Failure<ModelComponentsDto?>(ResultErrorType.NotFound, "Model bulunamadı.");
         }
  
         if (model.Status != ModelStatus.Completed || string.IsNullOrEmpty(model.ModelFilePath))
         {
-            throw new InvalidOperationException("Bileşenleri görebilmek için modelin eğitiminin tamamlanmış olması gerekir.");
+            return Result.Failure<ModelComponentsDto?>(ResultErrorType.ValidationError, "Bileşenleri görebilmek için modelin eğitiminin tamamlanmış olması gerekir.");
         }
  
         var requestBody = new { model_path = model.ModelFilePath };
@@ -208,12 +208,12 @@ public class ModelService : IModelService
         catch (HttpRequestException ex)
         {
             // ML servisine hiç ulaşılamadı (ayakta değil, ağ sorunu vs.)
-            throw new Exception($"ML servisine ulaşılamadı: {ex.Message}");
+            return Result.Failure<ModelComponentsDto?>(ResultErrorType.Unexpected, $"ML servisine ulaşılamadı: {ex.Message}");
         }
- 
+
         if (!httpResponse.IsSuccessStatusCode)
         {
-            throw new Exception("Model bileşenleri alınırken Python API'ında bir hata oluştu.");
+            return Result.Failure<ModelComponentsDto?>(ResultErrorType.Unexpected, "Model bileşenleri alınırken Python API'ında bir hata oluştu.");
         }
  
         var responseBody = await httpResponse.Content.ReadAsStringAsync();
@@ -223,7 +223,7 @@ public class ModelService : IModelService
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
         });
  
-        return componentsResult;
+        return Result.Success<ModelComponentsDto?>(componentsResult);
     }
 
 }

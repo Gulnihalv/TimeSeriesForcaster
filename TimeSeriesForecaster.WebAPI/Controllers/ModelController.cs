@@ -27,20 +27,8 @@ public class ModelController : ApiControllerBase
             return Unauthorized("User id bulunmadı");
         }
 
-        try
-        {
-            var result = await _modelService.TrainModelAsync(datasetId, userId.Value, request.Algorithm, request.Hyperparameters);
-            if (result == null)
-            {
-                return Forbid();
-            }
-
-            return CreatedAtAction(nameof(GetModelById), new { id = result.Id }, result);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, ex.Message);
-        }
+        var result = await _modelService.TrainModelAsync(datasetId, userId.Value, request.Algorithm, request.Hyperparameters);
+        return ToActionResult(result, value => CreatedAtAction(nameof(GetModelById), new { id = value!.Id }, value));
     }
 
     [HttpGet("/api/datasets/{datasetId}/models")]
@@ -96,13 +84,8 @@ public class ModelController : ApiControllerBase
             return Unauthorized("User id bulunmadı");
         }
 
-        var deleted = await _modelService.DeleteModelAsync(id, userId.Value);
-        if (!deleted)
-        {
-            return NotFound("Model bulunamadı veya bu kullanıcıya ait değil.");
-        }
-
-        return NoContent();
+        var result = await _modelService.DeleteModelAsync(id, userId.Value);
+        return ToActionResult(result);
     }
 
     [HttpGet("{id}/components")]
@@ -114,19 +97,7 @@ public class ModelController : ApiControllerBase
             return Unauthorized("User id bulunmadı");
         }
 
-        try
-        {
-            var components = await _modelService.GetModelComponentsAsync(id, userId.Value);
-            if (components == null)
-            {
-                return NotFound("Model bulunamadı veya bu kullanıcıya ait değil.");
-            }
-
-            return Ok(components);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var result = await _modelService.GetModelComponentsAsync(id, userId.Value);
+        return ToActionResult(result);
     }
 }

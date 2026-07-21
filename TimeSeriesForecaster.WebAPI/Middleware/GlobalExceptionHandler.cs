@@ -4,10 +4,6 @@ using TimeSeriesForecaster.WebAPI.Constants;
 
 namespace TimeSeriesForecaster.WebAPI.Middleware;
 
-// Hiçbir controller/servis tarafından yakalanmamış (beklenmeyen) hatalar için son güvenlik ağı.
-// Controller'lardaki anlamlı catch (UnauthorizedAccessException, InvalidOperationException vb.)
-// bloklarının yerine geçmiyor - onlar zaten kendi 4xx yanıtlarını üretiyor, bu sadece geriye
-// kalan gerçekten beklenmedik durumları (null reference, DB bağlantı kopması vb.) karşılıyor.
 public class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;

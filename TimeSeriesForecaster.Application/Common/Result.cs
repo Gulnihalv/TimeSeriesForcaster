@@ -5,6 +5,7 @@ public enum ResultErrorType
     NotFound,
     Forbidden,
     ValidationError,
+    Unexpected,
 }
 
 public class Result
@@ -22,6 +23,9 @@ public class Result
 
     public static Result Success() => new(true, null, null);
     public static Result Failure(ResultErrorType errorType, string error) => new(false, error, errorType);
+
+    public static Result<T> Success<T>(T value) => Result<T>.Success(value);
+    public static Result<T> Failure<T>(ResultErrorType errorType, string error) => Result<T>.Failure(errorType, error);
 }
 
 public class Result<T> : Result

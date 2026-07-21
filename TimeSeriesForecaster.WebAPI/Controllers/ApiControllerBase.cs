@@ -17,6 +17,7 @@ public abstract class ApiControllerBase : ControllerBase
             ResultErrorType.NotFound => NotFound(result.Error),
             ResultErrorType.Forbidden => StatusCode(StatusCodes.Status403Forbidden, result.Error),
             ResultErrorType.ValidationError => BadRequest(result.Error),
+            ResultErrorType.Unexpected => StatusCode(StatusCodes.Status500InternalServerError, result.Error),
             _ => StatusCode(StatusCodes.Status500InternalServerError, result.Error),
         };
     }
@@ -33,6 +34,7 @@ public abstract class ApiControllerBase : ControllerBase
             ResultErrorType.NotFound => NotFound(result.Error),
             ResultErrorType.Forbidden => StatusCode(StatusCodes.Status403Forbidden, result.Error),
             ResultErrorType.ValidationError => BadRequest(result.Error),
+            ResultErrorType.Unexpected => StatusCode(StatusCodes.Status500InternalServerError, result.Error),
             _ => StatusCode(StatusCodes.Status500InternalServerError, result.Error),
         };
     }
