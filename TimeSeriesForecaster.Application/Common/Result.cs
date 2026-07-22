@@ -6,6 +6,7 @@ public enum ResultErrorType
     Forbidden,
     ValidationError,
     Unexpected,
+    BadRequest
 }
 
 public class Result

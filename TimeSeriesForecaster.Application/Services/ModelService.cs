@@ -62,7 +62,7 @@ public class ModelService : IModelService
             return Result.Failure<ModelDto?>(ResultErrorType.NotFound, "Model bulunamadı.");
         }
         var modelDto = _mapper.Map<ModelDto>(model);
-        return Result.Success(modelDto);
+        return Result.Success<ModelDto?>(modelDto);
     }
 
     public async Task<Result<ModelDto?>> TrainModelAsync(int datasetId, int userId, string algorithm, ProphetHyperparametersDto? hyperparameters = null)
