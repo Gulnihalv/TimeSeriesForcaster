@@ -1,4 +1,5 @@
 using AutoMapper;
+using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.Contracts.Persistence;
 using TimeSeriesForecaster.Application.DTOs;
@@ -19,14 +20,14 @@ public class ProjectService : IProjectService
         _mapper = mapper;
     }
 
-    public async Task<IEnumerable<ProjectDto>> GetProjectsForUserAsync(int userId)
+    public async Task<Result<IEnumerable<ProjectDto>>> GetProjectsForUserAsync(int userId)
     {
         var projects = await _projectRepository.GetAllProjectsForUserAsync(userId: userId, trackChanges: false, includeInactive: false); // Burası readonly bir method olduğunan trackchangesi false
 
         var projectsDto = _mapper.Map<IEnumerable<ProjectDto>>(projects);
-        return projectsDto;
+        return Result.Success(projectsDto);
     }
-    public async Task<ProjectDto> CreateProjectForUserAsync(ProjectForCreationDto projectDto, int userId)
+    public async Task<Result<ProjectDto>> CreateProjectForUserAsync(ProjectForCreationDto projectDto, int userId)
     {
         var projectEntity = _mapper.Map<Project>(projectDto);
 
@@ -39,39 +40,39 @@ public class ProjectService : IProjectService
         await _unitOfWork.SaveChangesAsync();
 
         var projectResultDto = _mapper.Map<ProjectDto>(projectEntity);
-        return projectResultDto;
+        return Result.Success(projectResultDto);
     }
 
-    public async Task<ProjectDto?> GetProjectByIdAsync(int projectId, int userId)
+    public async Task<Result<ProjectDto?>> GetProjectByIdAsync(int projectId, int userId)
     {
         var userOwnsProject = await _projectRepository.UserOwnsProjectAsync(projectId: projectId, userId: userId);
         if (!userOwnsProject)
         {
-            return null;
+            return Result.Failure<ProjectDto?>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
 
         var project = await _projectRepository.GetProjectByIdAsync(id: projectId, trackChanges: false);
         if (project == null)
         {
-            return null;
+            return Result.Failure<ProjectDto?>(ResultErrorType.NotFound, ErrorMessages.ProjectNotFound);
         }
 
         var projectDto = _mapper.Map<ProjectDto>(project);
-        return projectDto;
+        return Result.Success<ProjectDto?>(projectDto);
     }
 
-    public async Task<bool> DeleteProjectAsync(int projectId, int userId)
+    public async Task<Result<bool>> DeleteProjectAsync(int projectId, int userId)
     {
         var userOwnsProject = await _projectRepository.UserOwnsProjectAsync(projectId: projectId, userId: userId);
         if (!userOwnsProject)
         {
-            return false;
+            return Result.Failure<bool>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
 
         var project = await _projectRepository.GetProjectByIdAsync(id: projectId, trackChanges: true);
         if (project == null)
         {
-            return false;
+            return Result.Failure<bool>(ResultErrorType.NotFound, ErrorMessages.ProjectNotFound);
         }
 
         project.IsActive = false;
@@ -79,6 +80,6 @@ public class ProjectService : IProjectService
         _projectRepository.UpdateProject(project);
         await _unitOfWork.SaveChangesAsync();
 
-        return true;
+        return Result.Success(true);
     }
 }

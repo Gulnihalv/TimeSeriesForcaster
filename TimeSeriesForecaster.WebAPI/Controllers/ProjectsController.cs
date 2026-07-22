@@ -1,7 +1,6 @@
-using System.Security.Claims;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.DTOs;
 using TimeSeriesForecaster.WebAPI.Extensions;
@@ -11,7 +10,7 @@ namespace TimeSeriesForecaster.WebAPI.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/projects")]
-public class ProjectsController : ControllerBase
+public class ProjectsController : ApiControllerBase
 {
     private readonly IProjectService _projectService;
 
@@ -27,12 +26,11 @@ public class ProjectsController : ControllerBase
 
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı"); // hata kodları için dosya oluşturmak lazım.
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var results = await _projectService.GetProjectsForUserAsync(userId.Value);
-
-        return Ok(results);
+        var result = await _projectService.GetProjectsForUserAsync(userId.Value);
+        return ToActionResult(result, value => Ok(value));
     }
 
     [HttpGet("{id}", Name = "GetProjectById")]
@@ -42,16 +40,11 @@ public class ProjectsController : ControllerBase
 
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var project = await _projectService.GetProjectByIdAsync(id, userId.Value);
-        if (project == null)
-        {
-            return NotFound("Proje bulunamadı veya bu kullanıcıya ait değil.");
-        }
-
-        return Ok(project);
+        var result = await _projectService.GetProjectByIdAsync(id, userId.Value);
+        return ToActionResult(result, value => Ok(value));
     }
 
     [HttpPost]
@@ -61,17 +54,11 @@ public class ProjectsController : ControllerBase
 
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı"); // hata kodları için dosya oluşturmak lazım.
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
         var result = await _projectService.CreateProjectForUserAsync(projectForCreationDto, userId.Value);
-
-        if (result == null)
-        {
-            return BadRequest("Proje oluşturulamadı.");
-        }
-
-        return CreatedAtAction(nameof(GetProjectById), new { id = result.Id }, result); 
+        return ToActionResult(result, value => CreatedAtAction(nameof(GetProjectById), new { id = value!.Id }, value));
     }
 
     [HttpDelete("{id}")]
@@ -81,15 +68,10 @@ public class ProjectsController : ControllerBase
 
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var deleted = await _projectService.DeleteProjectAsync(id, userId.Value);
-        if (!deleted)
-        {
-            return NotFound("Proje bulunamadı veya bu kullanıcıya ait değil.");
-        }
-
-        return NoContent();
+        var result = await _projectService.DeleteProjectAsync(id, userId.Value);
+        return ToActionResult(result);
     }
 }

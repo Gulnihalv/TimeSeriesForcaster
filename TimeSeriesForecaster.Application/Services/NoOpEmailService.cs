@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Contracts.Application;
 
 namespace TimeSeriesForecaster.Application.Services;
@@ -14,9 +15,9 @@ public class NoOpEmailService : IEmailService
         _logger = logger;
     }
 
-    public Task SendEmailAsync(string toEmail, string subject, string body, CancellationToken cancellationToken = default)
+    public Task<Result> SendEmailAsync(string toEmail, string subject, string body, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[NoOpEmailService] E-posta gönderilecekti: To={ToEmail}, Subject={Subject}", toEmail, subject);
-        return Task.CompletedTask;
+        return Task.FromResult(Result.Success());
     }
 }

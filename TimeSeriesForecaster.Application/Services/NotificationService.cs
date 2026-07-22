@@ -1,4 +1,5 @@
 using AutoMapper;
+using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.Contracts.Persistence;
 using TimeSeriesForecaster.Application.DTOs;
@@ -19,7 +20,7 @@ public class NotificationService : INotificationService
         _mapper = mapper;
     }
 
-    public async Task CreateNotificationAsync(int userId, NotificationType type, string message, string relatedEntityType, int relatedEntityId)
+    public async Task<Result> CreateNotificationAsync(int userId, NotificationType type, string message, string relatedEntityType, int relatedEntityId)
     {
         var notification = new Notification
         {
@@ -37,34 +38,42 @@ public class NotificationService : INotificationService
 
         // İleride e-posta gönderimi buraya eklenecek: kullanıcının e-postasını çekip
         // IEmailService.SendEmailAsync çağrılabilir. Şimdilik altyapı hazır, kullanılmıyor.
+        return Result.Success();
     }
 
-    public async Task<IEnumerable<NotificationDto>> GetNotificationsForUserAsync(int userId)
+    public async Task<Result<IEnumerable<NotificationDto>>> GetNotificationsForUserAsync(int userId)
     {
         var notifications = await _notificationRepository.GetForUserAsync(userId);
-        return _mapper.Map<IEnumerable<NotificationDto>>(notifications);
+        return Result.Success(_mapper.Map<IEnumerable<NotificationDto>>(notifications));
     }
 
-    public async Task<int> GetUnreadCountAsync(int userId)
+    public async Task<Result<int>> GetUnreadCountAsync(int userId)
     {
-        return await _notificationRepository.GetUnreadCountAsync(userId);
+        var count = await _notificationRepository.GetUnreadCountAsync(userId);
+        return Result.Success(count);
     }
 
-    public async Task<bool> MarkAsReadAsync(int notificationId, int userId)
+    public async Task<Result<bool>> MarkAsReadAsync(int notificationId, int userId)
     {
         var notification = await _notificationRepository.GetByIdAsync(notificationId, trackChanges: true);
-        if (notification == null || notification.UserId != userId)
+        if (notification == null)
         {
-            return false;
+            return Result.Failure<bool>(ResultErrorType.NotFound, ErrorMessages.NotificationNotFound);
+        }
+
+        if (notification.UserId != userId)
+        {
+            return Result.Failure<bool>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
 
         notification.IsRead = true;
         await _unitOfWork.SaveChangesAsync();
-        return true;
+        return Result.Success(true);
     }
 
-    public async Task MarkAllAsReadAsync(int userId)
+    public async Task<Result> MarkAllAsReadAsync(int userId)
     {
         await _notificationRepository.MarkAllAsReadAsync(userId);
+        return Result.Success();
     }
 }

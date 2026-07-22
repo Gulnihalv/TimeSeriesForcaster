@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.WebAPI.Extensions;
 
@@ -8,7 +9,7 @@ namespace TimeSeriesForecaster.WebAPI.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/notifications")]
-public class NotificationsController : ControllerBase
+public class NotificationsController : ApiControllerBase
 {
     private readonly INotificationService _notificationService;
 
@@ -23,11 +24,11 @@ public class NotificationsController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var notifications = await _notificationService.GetNotificationsForUserAsync(userId.Value);
-        return Ok(notifications);
+        var result = await _notificationService.GetNotificationsForUserAsync(userId.Value);
+        return ToActionResult(result, value => Ok(value));
     }
 
     [HttpGet("unread-count")]
@@ -36,11 +37,11 @@ public class NotificationsController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var count = await _notificationService.GetUnreadCountAsync(userId.Value);
-        return Ok(new { count });
+        var result = await _notificationService.GetUnreadCountAsync(userId.Value);
+        return ToActionResult(result, value => Ok(new { count = value }));
     }
 
     [HttpPost("{id}/read")]
@@ -49,16 +50,11 @@ public class NotificationsController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var success = await _notificationService.MarkAsReadAsync(id, userId.Value);
-        if (!success)
-        {
-            return NotFound("Bildirim bulunamadı veya bu kullanıcıya ait değil.");
-        }
-
-        return NoContent();
+        var result = await _notificationService.MarkAsReadAsync(id, userId.Value);
+        return ToActionResult(result);
     }
 
     [HttpPost("read-all")]
@@ -67,10 +63,10 @@ public class NotificationsController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        await _notificationService.MarkAllAsReadAsync(userId.Value);
-        return NoContent();
+        var result = await _notificationService.MarkAllAsReadAsync(userId.Value);
+        return ToActionResult(result);
     }
 }

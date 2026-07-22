@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.Contracts.Persistence;
@@ -32,10 +33,10 @@ public class ModelProcessingService : IModelProcessingService
         _mlServiceSettings = mlServiceSettings.Value;
     }
 
-    public async Task ProcessModelAsync(int modelId, CancellationToken cancellationToken = default)
+    public async Task<Result> ProcessModelAsync(int modelId, CancellationToken cancellationToken = default)
     {
         var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: true);
-        if (model == null) return;
+        if (model == null) return Result.Failure(ResultErrorType.NotFound, ErrorMessages.ModelNotFound);
 
         model.Status = ModelStatus.Training;
         model.TrainingStartedAt = DateTime.UtcNow;
@@ -124,24 +125,27 @@ public class ModelProcessingService : IModelProcessingService
             model.Status = ModelStatus.Failed;
             model.ErrorMessage = ex.Message;
             await NotifyModelResultAsync(model, success: false);
+            return Result.Failure(ResultErrorType.Unexpected, model.ErrorMessage);
         }
         finally
         {
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
+
+        return Result.Success();
     }
 
-    private async Task NotifyModelResultAsync(Model model, bool success)
+    private async Task<Result> NotifyModelResultAsync(Model model, bool success)
     {
         var project = await _projectRepository.GetProjectByIdAsync(id: model.ProjectId, trackChanges: false);
-        if (project == null) return;
+        if (project == null) return Result.Failure(ResultErrorType.NotFound, ErrorMessages.ProjectNotFound);
 
         var type = success ? NotificationType.ModelTrainingCompleted : NotificationType.ModelTrainingFailed;
         var message = success
             ? $"\"{model.ModelName}\" modelinin eğitimi tamamlandı."
             : $"\"{model.ModelName}\" modelinin eğitimi başarısız oldu: {model.ErrorMessage}";
 
-        await _notificationService.CreateNotificationAsync(project.UserId, type, message, "Model", model.Id);
+        return await _notificationService.CreateNotificationAsync(project.UserId, type, message, "Model", model.Id);
     }
 
     private class PythonTrainingResponse

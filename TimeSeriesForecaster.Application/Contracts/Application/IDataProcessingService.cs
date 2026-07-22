@@ -1,6 +1,7 @@
+using TimeSeriesForecaster.Application.Common;
 namespace TimeSeriesForecaster.Application.Contracts.Application;
 
 public interface IDataProcessingService
 {
-    Task ProcessDatasetAsync(int datasetId, CancellationToken cancellationToken = default);
+    Task<Result> ProcessDatasetAsync(int datasetId, CancellationToken cancellationToken = default);
 }

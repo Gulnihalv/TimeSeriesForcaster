@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.Contracts.Persistence;
@@ -25,57 +26,70 @@ public class ForecastingService : IForecastingService
         _mlServiceSettings = mlServiceSettings.Value;
     }
 
-    public async Task ProcessForecastAsync(int modelId, int horizon, CancellationToken cancellationToken = default)
+    public async Task<Result> ProcessForecastAsync(int modelId, int horizon, CancellationToken cancellationToken = default)
     {
         var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: false);
         if (model == null)
         {
-            throw new Exception($"Tahmin üretilecek model bulunamadı: {modelId}");
+            return Result.Failure(ResultErrorType.NotFound, ErrorMessages.ForecastNotFound);
         }
 
         if (model.Status != ModelStatus.Completed || string.IsNullOrEmpty(model.ModelFilePath))
         {
-            throw new Exception("Tahmin üretebilmek için modelin eğitiminin tamamlanmış olması gerekir.");
+            return Result.Failure(ResultErrorType.BadRequest, ErrorMessages.ModelNotCompleted);
         }
 
         var requestBody = new { model_path = model.ModelFilePath, horizon };
         var httpClient = _httpClientFactory.CreateClient();
         var stringContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-        var httpResponse = await httpClient.PostAsync($"{_mlServiceSettings.BaseUrl}/predict/{model.Algorithm!.ToLower()}", stringContent);
+
+        HttpResponseMessage httpResponse;
+        try
+        {
+            httpResponse = await httpClient.PostAsync($"{_mlServiceSettings.BaseUrl}/predict/{model.Algorithm!.ToLower()}", stringContent, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return Result.Failure(ResultErrorType.InternalServerError, ErrorMessages.ForecastGenerationFailed);
+        }
 
         if (!httpResponse.IsSuccessStatusCode)
         {
-            throw new Exception("Tahmin üretimi sırasında Python API'ında bir hata oluştu.");
+            return Result.Failure(ResultErrorType.InternalServerError, ErrorMessages.ForecastGenerationFailed);
         }
 
-        var responseBody = await httpResponse.Content.ReadAsStringAsync();
-        var predictResult = JsonSerializer.Deserialize<PythonPredictResponse>(responseBody, new JsonSerializerOptions
+        List<Prediction> newPredictions;
+        try
         {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower // Python "yhat_lower"/"yhat_upper" -> C# eşlemesi için
-        });
+            var responseBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+            var predictResult = JsonSerializer.Deserialize<PythonPredictResponse>(responseBody, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower // Python "yhat_lower"/"yhat_upper" -> C# eşlemesi için
+            });
 
-        if (predictResult?.Predictions == null)
-        {
-            throw new Exception("Python API'ından geçerli bir tahmin listesi dönmedi.");
+            if (predictResult?.Predictions == null)
+            {
+                return Result.Failure(ResultErrorType.InternalServerError, ErrorMessages.InvalidForecastResponse);
+            }
+
+            var createdAt = DateTime.UtcNow;
+            newPredictions = predictResult.Predictions.Select(p => new Prediction
+            {
+                ModelId = modelId,
+                PredictionDate = DateTime.SpecifyKind(DateTime.Parse(p.Ds), DateTimeKind.Utc),
+                PredictedValue = (decimal)p.Yhat,
+                ConfidenceLower = (decimal)p.YhatLower,
+                ConfidenceUpper = (decimal)p.YhatUpper,
+                ActualValue = null, // gelecek tarihli tahmin, henüz gerçekleşmedi
+                IsAnomaly = false,
+                CreatedAt = createdAt
+            }).ToList();
         }
-
-        // Bu model için önceki tahminleri temizle - yeni forecast, eskisinin yerini alır
-        // (aynı modelden farklı horizon'larla tekrar tekrar tahmin alınabilir).
-        await _predictionRepository.RemovePredictionsForModelAsync(modelId);
-
-        var createdAt = DateTime.UtcNow;
-        var newPredictions = predictResult.Predictions.Select(p => new Prediction
+        catch (Exception ex) when (ex is JsonException or FormatException)
         {
-            ModelId = modelId,
-            PredictionDate = DateTime.SpecifyKind(DateTime.Parse(p.Ds), DateTimeKind.Utc),
-            PredictedValue = (decimal)p.Yhat,
-            ConfidenceLower = (decimal)p.YhatLower,
-            ConfidenceUpper = (decimal)p.YhatUpper,
-            ActualValue = null, // gelecek tarihli tahmin, henüz gerçekleşmedi
-            IsAnomaly = false,
-            CreatedAt = createdAt
-        }).ToList();
+            return Result.Failure(ResultErrorType.InternalServerError, ErrorMessages.InvalidForecastResponse);
+        }
 
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
@@ -84,6 +98,7 @@ public class ForecastingService : IForecastingService
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             return true;
         }, cancellationToken);
+        return Result.Success();
     }
 
     private class PythonPredictResponse

@@ -1,6 +1,7 @@
 using System.Globalization;
 using CsvHelper;
 using Microsoft.AspNetCore.Hosting;
+using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.Contracts.Persistence;
 using TimeSeriesForecaster.Domain.Entities;
@@ -26,10 +27,10 @@ public class DataProcessingService : IDataProcessingService
         _env = env;
     }
     
-    public async Task ProcessDatasetAsync(int datasetId, CancellationToken cancellationToken = default)
+    public async Task<Result> ProcessDatasetAsync(int datasetId, CancellationToken cancellationToken = default)
     {
         var dataset = await _datasetRepository.GetDatasetByIdAsync(id: datasetId, trackChanges: true);
-        if (dataset == null) return;
+        if (dataset == null) return Result.Failure(ResultErrorType.NotFound, ErrorMessages.DatasetNotFound);
 
         var filePath = Path.Combine(_env.ContentRootPath, dataset.FilePath!);
         var dataPoints = new List<DataPoint>();
@@ -68,7 +69,7 @@ public class DataProcessingService : IDataProcessingService
 
                     dataPoints.Add(newDataPoint);
                 }
-                catch (Exception ex) // GEÇİCİ TEŞHİS - sorunu bulunca kaldırılacak
+                catch (Exception ex)
                 {
                     Console.WriteLine($"[TEŞHİS] CSV satırı okunamadı: {ex.GetType().Name} - {ex.Message}");
                 }
@@ -80,8 +81,12 @@ public class DataProcessingService : IDataProcessingService
             dataset.IsProcessed = false;
             dataset.ErrorMessage = "Dosyadan veri okunamadı veya sütunlar yanlış.";
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-            await NotifyDatasetResultAsync(dataset, success: false);
-            return;
+            var notifyResult = await NotifyDatasetResultAsync(dataset, success: false);
+            if (!notifyResult.IsSuccess)
+            {
+                Console.WriteLine($"[TEŞHİS] Bildirim gönderilemedi: {notifyResult.Error}");
+            }
+            return Result.Failure(ResultErrorType.BadRequest, dataset.ErrorMessage);
         }
 
         await _dataPointRepository.CreateDataPointsBulkAsync(dataPoints);
@@ -93,19 +98,24 @@ public class DataProcessingService : IDataProcessingService
         dataset.UpdatedAt = DateTime.UtcNow;
         
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        await NotifyDatasetResultAsync(dataset, success: true);
+        var successNotifyResult = await NotifyDatasetResultAsync(dataset, success: true);
+        if (!successNotifyResult.IsSuccess)
+        {
+            Console.WriteLine($"[TEŞHİS] Bildirim gönderilemedi: {successNotifyResult.Error}");
+        }
+        return Result.Success();
     }
 
-    private async Task NotifyDatasetResultAsync(Dataset dataset, bool success)
+    private async Task<Result> NotifyDatasetResultAsync(Dataset dataset, bool success)
     {
         var project = await _projectRepository.GetProjectByIdAsync(id: dataset.ProjectId, trackChanges: false);
-        if (project == null) return;
+        if (project == null) return Result.Failure(ResultErrorType.NotFound, ErrorMessages.ProjectNotFound);
 
         var type = success ? NotificationType.DatasetProcessingCompleted : NotificationType.DatasetProcessingFailed;
         var message = success
             ? $"\"{dataset.Name}\" dataset'i başarıyla işlendi."
             : $"\"{dataset.Name}\" dataset'i işlenemedi: {dataset.ErrorMessage}";
 
-        await _notificationService.CreateNotificationAsync(project.UserId, type, message, "Dataset", dataset.Id);
+        return await _notificationService.CreateNotificationAsync(project.UserId, type, message, "Dataset", dataset.Id);
     }
 }
