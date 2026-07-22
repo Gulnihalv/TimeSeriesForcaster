@@ -40,7 +40,7 @@ public class ModelService : IModelService
         var userOwnsDataset = await _datasetRepository.UserOwnsDatasetAsync(datasetId: datasetId, userId: userId);
         if (!userOwnsDataset)
         {
-            return Result.Failure<IEnumerable<ModelDto>>(ResultErrorType.Forbidden, "Bu veri seti üzerinde işlem yapılamaz.");
+            return Result.Failure<IEnumerable<ModelDto>>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
 
         var models = await _modelRepository.GetModelsForDatasetAsync(datasetId: datasetId, trackChanges: false);
@@ -53,7 +53,7 @@ public class ModelService : IModelService
         var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
         if (!userOwnsModel)
         {
-            return null;
+            return Result.Failure<ModelDto?>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
 
         var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: false);
@@ -70,7 +70,7 @@ public class ModelService : IModelService
         var userOwnsDataset = await _datasetRepository.UserOwnsDatasetAsync(datasetId: datasetId, userId: userId);
         if (!userOwnsDataset)
         {
-            return Result.Failure<ModelDto?>(ResultErrorType.Forbidden, "Bu veri seti üzerinde işlem yapılamaz.");
+            return Result.Failure<ModelDto?>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
 
         var dataset = await _datasetRepository.GetDatasetByIdAsync(id: datasetId, trackChanges: false);
@@ -123,7 +123,7 @@ public class ModelService : IModelService
         var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
         if (!userOwnsModel)
         {
-            return Result.Failure<ModelDetailDto?>(ResultErrorType.Forbidden, "Bu model üzerinde işlem yapılamaz.");
+            return Result.Failure<ModelDetailDto?>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
 
         var model = await _modelRepository.GetModelWithMetricsAsync(id: modelId, trackChanges: false);
@@ -141,7 +141,7 @@ public class ModelService : IModelService
         var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
         if (!userOwnsModel)
         {
-            return Result.Failure(ResultErrorType.Forbidden, "Bu model üzerinde işlem yapılamaz.");
+            return Result.Failure(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
 
         var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: false);
@@ -182,7 +182,7 @@ public class ModelService : IModelService
         var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
         if (!userOwnsModel)
         {
-            return Result.Failure<ModelComponentsDto?>(ResultErrorType.Forbidden, "Bu model üzerinde işlem yapılamaz.");
+            return Result.Failure<ModelComponentsDto?>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
  
         var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: false);
