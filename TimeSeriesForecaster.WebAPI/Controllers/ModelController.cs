@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.DTOs;
+using TimeSeriesForecaster.WebAPI.Constants;
 using TimeSeriesForecaster.WebAPI.Extensions;
 
 namespace TimeSeriesForecaster.WebAPI.Controllers;
@@ -24,7 +25,7 @@ public class ModelController : ApiControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
         var result = await _modelService.TrainModelAsync(datasetId, userId.Value, request.Algorithm, request.Hyperparameters);
@@ -37,7 +38,7 @@ public class ModelController : ApiControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
         var results = await _modelService.GetAllModelsForDatasetAsync(datasetId: datasetId, userId: userId.Value);
@@ -50,7 +51,7 @@ public class ModelController : ApiControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
         var model = await _modelService.GetModelDetailByIdAsync(modelId: id, userId: userId.Value);
@@ -68,7 +69,7 @@ public class ModelController : ApiControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
         var result = await _modelService.GenerateForecastAsync(modelId: id, userId: userId.Value, horizon: request.Horizon);
@@ -81,7 +82,7 @@ public class ModelController : ApiControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
         var result = await _modelService.DeleteModelAsync(id, userId.Value);
@@ -94,7 +95,7 @@ public class ModelController : ApiControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
         var result = await _modelService.GetModelComponentsAsync(id, userId.Value);

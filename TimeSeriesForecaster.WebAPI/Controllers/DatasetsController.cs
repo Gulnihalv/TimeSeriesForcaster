@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TimeSeriesForecaster.Application.Contracts.Application;
+using TimeSeriesForecaster.WebAPI.Constants;
 using TimeSeriesForecaster.WebAPI.Extensions;
 
 namespace TimeSeriesForecaster.WebAPI.Controllers;
@@ -8,7 +9,7 @@ namespace TimeSeriesForecaster.WebAPI.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/datasets")]
-public class DatasetsController : ControllerBase
+public class DatasetsController : ApiControllerBase
 {
     private readonly IDatasetService _datasetService;
 
@@ -23,23 +24,11 @@ public class DatasetsController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        try
-        {
-            var result = await _datasetService.CreateDatasetFromUploadAsync(projectId, userId.Value, name, file, dateColumnName, targetColumnName);
-            if (result == null)
-            {
-                return StatusCode(StatusCodes.Status403Forbidden, "Yetkin Yok!");
-            }
-
-            return CreatedAtAction(nameof(GetDatasetById), new { id = result.Id }, result);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var result = await _datasetService.CreateDatasetFromUploadAsync(projectId, userId.Value, name, file, dateColumnName, targetColumnName);
+        return ToActionResult(result, value => CreatedAtAction(nameof(GetDatasetById), new { id = value!.Id }, value));
     }
 
     [HttpGet("{id}", Name = "GetDatasetById")]
@@ -48,29 +37,24 @@ public class DatasetsController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var dataset = await _datasetService.GetDatasetByIdAsync(datasetId: id, userId: userId.Value);
-        if (dataset == null)
-        {
-            return NotFound("Dataset bulunamadı veya bu kullanıcıya ait değil.");
-        }
-
-        return Ok(dataset);
+        var result = await _datasetService.GetDatasetByIdAsync(datasetId: id, userId: userId.Value);
+        return ToActionResult(result, value => Ok(value));
     }
     
     [HttpGet("/api/projects/{projectId}/datasets")]
     public async Task<IActionResult> GetAllDatasetsForProject(int projectId)
     {
-         var userId = User.GetUserId();
+        var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var results = await _datasetService.GetAllDatasetsForProjectAsync(projectId: projectId, userId: userId.Value);
-        return Ok(results);
+        var result = await _datasetService.GetAllDatasetsForProjectAsync(projectId: projectId, userId: userId.Value);
+        return ToActionResult(result, value => Ok(value));
     }
 
     [HttpDelete("{id}")]
@@ -79,16 +63,11 @@ public class DatasetsController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var deleted = await _datasetService.DeleteDatasetAsync(id, userId.Value);
-        if (!deleted)
-        {
-            return NotFound("Dataset bulunamadı veya bu kullanıcıya ait değil.");
-        }
-
-        return NoContent();
+        var result = await _datasetService.DeleteDatasetAsync(id, userId.Value);
+        return ToActionResult(result);
     }
 
     [HttpGet("{id}/datapoints")]
@@ -97,15 +76,10 @@ public class DatasetsController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null)
         {
-            return Unauthorized("User id bulunmadı");
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var dataPoints = await _datasetService.GetDataPointsForDatasetAsync(id, userId.Value);
-        if (dataPoints == null)
-        {
-            return NotFound("Dataset bulunamadı veya bu kullanıcıya ait değil.");
-        }
-
-        return Ok(dataPoints);
+        var result = await _datasetService.GetDataPointsForDatasetAsync(id, userId.Value);
+        return ToActionResult(result, value => Ok(value));
     }
 }

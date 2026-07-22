@@ -61,9 +61,8 @@ public class DatasetService : IDatasetService
     
     }
 
-    // CSV'nin header satırını okuyup dateColumnName/targetColumnName'in gerçekten var olup
-    // olmadığını kontrol eder. Dosyayı diske kaydetmeden önce çağrılır.
-    private async Task ValidateCsvColumnsAsync(IFormFile file, string dateColumnName, string targetColumnName)
+    // CSV'nin header satırını okuyup dateColumnName/targetColumnName'in gerçekten var olup olmadığını kontrol eder. Dosyayı diske kaydetmeden önce çağrılır.
+    private async Task<Result> ValidateCsvColumnsAsync(IFormFile file, string dateColumnName, string targetColumnName)
     {
         using var stream = file.OpenReadStream();
         using var reader = new StreamReader(stream);
@@ -85,10 +84,12 @@ public class DatasetService : IDatasetService
 
         if (missingColumns.Any())
         {
-            throw new ArgumentException(
+            return Result.Failure(ResultErrorType.BadRequest,
                 $"CSV dosyasında şu sütun(lar) bulunamadı: {string.Join(", ", missingColumns)}. " +
                 $"Dosyadaki mevcut sütunlar: {string.Join(", ", headers)}");
         }
+
+        return Result.Success();
     }
 
     public async Task<Result<DatasetDto?>> CreateDatasetFromUploadAsync(int projectId, int userId, string name, IFormFile file, string dateColumnName, string targetColumnName)
@@ -108,7 +109,11 @@ public class DatasetService : IDatasetService
 
         // 2) Kolon adı kontrolü - dosyayı diske kaydetmeden ÖNCE header'ı okuyup doğruluyoruz,
         // böylece geçersiz bir dosya diskte yer kaplamıyor ve kullanıcı hatayı anında (Hangfire'ı beklemeden) görüyor.
-        await ValidateCsvColumnsAsync(file, dateColumnName, targetColumnName);
+        var columnValidationResult = await ValidateCsvColumnsAsync(file, dateColumnName, targetColumnName);
+        if (!columnValidationResult.IsSuccess)
+        {
+            return Result.Failure<DatasetDto?>(columnValidationResult.ErrorType!.Value, columnValidationResult.Error!);
+        }
 
         var storagePathResult = await SaveFileAsync(file, "datasets");
         if (!storagePathResult.IsSuccess)
