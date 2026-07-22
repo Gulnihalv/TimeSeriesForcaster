@@ -41,8 +41,8 @@ public class ModelController : ApiControllerBase
             return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var results = await _modelService.GetAllModelsForDatasetAsync(datasetId: datasetId, userId: userId.Value);
-        return Ok(results);
+        var result = await _modelService.GetAllModelsForDatasetAsync(datasetId: datasetId, userId: userId.Value);
+        return ToActionResult(result, value => Ok(value));
     }
 
     [HttpGet("{id}", Name = "GetModelById")]
@@ -54,13 +54,8 @@ public class ModelController : ApiControllerBase
             return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var model = await _modelService.GetModelDetailByIdAsync(modelId: id, userId: userId.Value);
-        if (model == null)
-        {
-            return NotFound("Model bulunamadı veya bu kullanıcıya ait değil.");
-        }
-
-        return Ok(model);
+        var result = await _modelService.GetModelDetailByIdAsync(modelId: id, userId: userId.Value);
+        return ToActionResult(result, value => Ok(value));
     }
 
     [HttpPost("{id}/forecast")]
