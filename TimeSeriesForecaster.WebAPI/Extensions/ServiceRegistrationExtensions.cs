@@ -28,6 +28,7 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<IForecastingService, ForecastingService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IEmailService, NoOpEmailService>();
+        services.AddScoped<IDashboardService, DashboardService>();
 
         services.AddAutoMapper(cfg => { }, typeof(TimeSeriesForecaster.Application.Mappings.MappingProfile));
 
@@ -46,6 +47,7 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<IPredictionRepository, PredictionRepository>();
         services.AddScoped<IModelMetricRepository, ModelMetricRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IDashboardDismissalRepository, DashboardDismissalRepository>();
 
         return services;
     }

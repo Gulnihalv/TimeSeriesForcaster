@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Configuration;
@@ -19,9 +20,10 @@ public class ModelProcessingService : IModelProcessingService
     private readonly IProjectRepository _projectRepository;
     private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly MlServiceSettings _mlServiceSettings;
 
-    public ModelProcessingService(IHttpClientFactory httpClientFactory, IDataPointRepository dataPointRepository, IModelRepository modelRepository, IModelMetricRepository modelMetricRepository, IProjectRepository projectRepository, INotificationService notificationService, IUnitOfWork unitOfWork, IOptions<MlServiceSettings> mlServiceSettings)
+    public ModelProcessingService(IHttpClientFactory httpClientFactory, IDataPointRepository dataPointRepository, IModelRepository modelRepository, IModelMetricRepository modelMetricRepository, IProjectRepository projectRepository, INotificationService notificationService, IUnitOfWork unitOfWork, IServiceScopeFactory serviceScopeFactory, IOptions<MlServiceSettings> mlServiceSettings)
     {
         _httpClientFactory = httpClientFactory;
         _dataPointRepository = dataPointRepository;
@@ -30,6 +32,7 @@ public class ModelProcessingService : IModelProcessingService
         _projectRepository = projectRepository;
         _notificationService = notificationService;
         _unitOfWork = unitOfWork;
+        _serviceScopeFactory = serviceScopeFactory;
         _mlServiceSettings = mlServiceSettings.Value;
     }
 
@@ -40,7 +43,16 @@ public class ModelProcessingService : IModelProcessingService
 
         model.Status = ModelStatus.Training;
         model.TrainingStartedAt = DateTime.UtcNow;
+        model.ProgressPercentage = 5;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Prophet'in fit() çağrısı tek, bloklayıcı ve ara ilerleme sinyali
+        // vermeyen bir işlem (ml-service'te epoch/adım bazlı bir geri bildirim
+        // yok). Bu yüzden burada gerçek bir ölçüm değil, zamana dayalı tahmini
+        // bir ilerleme simülasyonu çalıştırıyoruz - HTTP çağrısı boyunca
+        // yüzdeyi kademeli olarak artırıp çağrı bitince 100'e sabitliyoruz.
+        using var progressCts = new CancellationTokenSource();
+        var progressTask = SimulateTrainingProgressAsync(model.Id, progressCts.Token);
 
         try
         {
@@ -93,6 +105,7 @@ public class ModelProcessingService : IModelProcessingService
             model.Status = ModelStatus.Completed;
             model.ModelFilePath = modelPath;
             model.ErrorMessage = null;
+            model.ProgressPercentage = 100;
 
             if (trainingResult?.Metrics != null)
             {
@@ -124,15 +137,59 @@ public class ModelProcessingService : IModelProcessingService
         {
             model.Status = ModelStatus.Failed;
             model.ErrorMessage = ex.Message;
+            // İşlem terminal duruma geçti; ilerleme halkası yarıda "takılmış"
+            // görünmesin diye tamamlanmış olarak gösteriyoruz - başarı/hata
+            // farkı Status/renk üzerinden zaten iletiliyor.
+            model.ProgressPercentage = 100;
             await NotifyModelResultAsync(model, success: false);
             return Result.Failure(ResultErrorType.Unexpected, model.ErrorMessage);
         }
         finally
         {
+            progressCts.Cancel();
+            try
+            {
+                await progressTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // beklenen durum: HTTP çağrısı bitince simülasyon iptal edilir
+            }
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
         return Result.Success();
+    }
+
+    private async Task SimulateTrainingProgressAsync(int modelId, CancellationToken ct)
+    {
+        // Heuristic/tahmini ilerleme: gerçek eğitim ilerlemesinin bir ölçümü
+        // değildir, sadece kullanıcıya görsel geri bildirim vermek içindir.
+        const int startPct = 5;
+        const int capPct = 90;
+        const int estimatedDurationSeconds = 20;
+        const int ticks = 15;
+        var delayPerTick = TimeSpan.FromSeconds(estimatedDurationSeconds / (double)ticks);
+
+        try
+        {
+            for (var i = 1; i <= ticks; i++)
+            {
+                await Task.Delay(delayPerTick, ct);
+                var pct = startPct + (int)((capPct - startPct) * (i / (double)ticks));
+
+                // Ana akışın izlediği DbContext ile eşzamanlı yazma yapmamak için
+                // ayrı bir DI scope üzerinden kendi repository örneğimizi çözüyoruz.
+                using var scope = _serviceScopeFactory.CreateScope();
+                var modelRepository = scope.ServiceProvider.GetRequiredService<IModelRepository>();
+                await modelRepository.UpdateProgressPercentageAsync(modelId, pct);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // beklenen durum: HTTP çağrısı bitince simülasyon iptal edilir
+        }
     }
 
     private async Task<Result> NotifyModelResultAsync(Model model, bool success)

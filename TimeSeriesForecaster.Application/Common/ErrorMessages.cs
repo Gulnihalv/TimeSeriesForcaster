@@ -14,4 +14,5 @@ public static class ErrorMessages
     public const string InvalidForecastResponse = "Python API'ından geçerli bir tahmin listesi dönmedi.";
     public const string NotificationNotFound = "Bildirim bulunamadı.";
     public const string ModelNotFound = "Model bulunamadı.";
+    public const string InvalidEntityType = "Geçersiz varlık türü.";
 }

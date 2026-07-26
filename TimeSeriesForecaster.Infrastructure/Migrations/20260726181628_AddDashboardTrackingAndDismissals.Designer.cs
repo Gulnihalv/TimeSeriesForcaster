@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TimeSeriesForecaster.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using TimeSeriesForecaster.Infrastructure.Persistence;
 namespace TimeSeriesForecaster.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260726181628_AddDashboardTrackingAndDismissals")]
+    partial class AddDashboardTrackingAndDismissals
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -389,21 +392,6 @@ namespace TimeSeriesForecaster.Infrastructure.Migrations
 
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("text");
-
-                    b.Property<DateTime?>("ForecastCompletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ForecastErrorMessage")
-                        .HasColumnType("text");
-
-                    b.Property<int>("ForecastProgressPercentage")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("ForecastStartedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("ForecastStatus")
-                        .HasColumnType("integer");
 
                     b.Property<string>("HangfireJobId")
                         .HasColumnType("text");

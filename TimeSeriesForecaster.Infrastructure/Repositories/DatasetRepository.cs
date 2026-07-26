@@ -68,4 +68,14 @@ public class DatasetRepository : IDatasetRepository
     {
         return await _context.Datasets.AnyAsync(d => d.Id == datasetId && d.Project!.UserId == userId && d.IsActive);
     }
+
+    public async Task<IEnumerable<Dataset>> GetRecentForUserAsync(int userId, int take)
+    {
+        return await _context.Datasets
+            .AsNoTracking()
+            .Where(d => d.Project!.UserId == userId && d.IsActive)
+            .OrderByDescending(d => d.CreatedAt)
+            .Take(take)
+            .ToListAsync();
+    }
 }

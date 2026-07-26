@@ -1,0 +1,74 @@
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-medium);
+  flex: 0 0 260px;
+  width: 260px;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.entityType {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.name {
+  margin: 2px 0 4px 0;
+  font-size: var(--font-size-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusLabel {
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+}
+
+.chartWrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.percentageLabel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.dismissButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--border-radius-small);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.dismissButton:hover {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}

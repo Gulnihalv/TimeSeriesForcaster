@@ -16,4 +16,8 @@ public interface IModelRepository
     Task<bool> ModelExistsAsync(int id);
     Task<bool> UserOwnsModelAsync(int modelId, int userId);
     Task<IEnumerable<Model>> GetCompletedModelsForDatasetAsync(int datasetId);
+    Task<IEnumerable<Model>> GetRecentForUserAsync(int userId, int take);
+    Task UpdateProgressPercentageAsync(int modelId, int progressPercentage);
+    Task<IEnumerable<Model>> GetRecentForecastsForUserAsync(int userId, int take);
+    Task UpdateForecastProgressPercentageAsync(int modelId, int progressPercentage);
 }

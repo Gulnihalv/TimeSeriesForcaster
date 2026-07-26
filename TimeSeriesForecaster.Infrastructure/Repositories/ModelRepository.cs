@@ -105,4 +105,38 @@ public class ModelRepository: IModelRepository
     {
         return await _context.Models.AnyAsync(m => m.Id == modelId && m.Project!.UserId == userId && m.IsActive);
     }
+
+    public async Task<IEnumerable<Model>> GetRecentForUserAsync(int userId, int take)
+    {
+        return await _context.Models
+            .AsNoTracking()
+            .Where(m => m.Project!.UserId == userId && m.IsActive)
+            .OrderByDescending(m => m.CreatedAt)
+            .Take(take)
+            .ToListAsync();
+    }
+
+    public async Task UpdateProgressPercentageAsync(int modelId, int progressPercentage)
+    {
+        await _context.Models
+            .Where(m => m.Id == modelId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(m => m.ProgressPercentage, progressPercentage));
+    }
+
+    public async Task<IEnumerable<Model>> GetRecentForecastsForUserAsync(int userId, int take)
+    {
+        return await _context.Models
+            .AsNoTracking()
+            .Where(m => m.Project!.UserId == userId && m.IsActive && m.ForecastStatus != null)
+            .OrderByDescending(m => m.ForecastCompletedAt ?? m.ForecastStartedAt)
+            .Take(take)
+            .ToListAsync();
+    }
+
+    public async Task UpdateForecastProgressPercentageAsync(int modelId, int progressPercentage)
+    {
+        await _context.Models
+            .Where(m => m.Id == modelId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(m => m.ForecastProgressPercentage, progressPercentage));
+    }
 }

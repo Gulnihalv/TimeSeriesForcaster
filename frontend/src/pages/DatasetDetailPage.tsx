@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import Card from '../components/Card/Card';
 import DatasetSummary from '../features/datasets/components/DatasetSummary';
 import DatasetChart from '../features/datasets/components/DatasetChart';
@@ -17,9 +17,14 @@ import styles from './DatasetDetailPage.module.css';
 const DatasetDetailPage = () => {
   const { datasetId } = useParams();
   const id = parseInt(datasetId || '0');
+  const [searchParams] = useSearchParams();
 
   const [dataset, setDataset] = useState<Dataset | null>(null);
-  const [selectedModelIds, setSelectedModelIds] = useState<number[]>([]);
+  const [selectedModelIds, setSelectedModelIds] = useState<number[]>(() => {
+    const raw = searchParams.get('modelId');
+    const parsed = raw ? parseInt(raw, 10) : NaN;
+    return Number.isNaN(parsed) ? [] : [parsed];
+  });
   const [modelListKey, setModelListKey] = useState(0);
 
   const handleDatasetLoaded = useCallback((loaded: Dataset) => {

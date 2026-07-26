@@ -1,4 +1,5 @@
 import { useState, type FC } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LuBell } from 'react-icons/lu';
 import { useApiData } from '../../hooks/useApiData';
 import {
@@ -9,6 +10,8 @@ import {
   NotificationType,
   type Notification,
 } from '../../features/notifications/api/notificationApi';
+import { getModelById } from '../../features/models/api/modelApi';
+import { useToast } from '../Toast/ToastContext';
 import styles from './NotificationBell.module.css';
 
 const TYPE_LABELS: Record<NotificationType, string> = {
@@ -30,6 +33,8 @@ const formatRelativeTime = (iso: string) => {
 
 const NotificationBell: FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
+  const { showToast } = useToast();
 
   // Zil rozeti, panel kapalıyken de periyodik olarak güncellensin diye ayrı bir sorgu.
   const { data: unreadCount, refetch: refetchCount } = useApiData<number>(
@@ -50,6 +55,18 @@ const NotificationBell: FC = () => {
       await markAsRead(notification.id);
       refetchCount();
       refetchList();
+    }
+
+    try {
+      if (notification.relatedEntityType === 'Dataset') {
+        navigate(`/datasets/${notification.relatedEntityId}`);
+      } else if (notification.relatedEntityType === 'Model') {
+        const model = await getModelById(notification.relatedEntityId);
+        navigate(`/datasets/${model.datasetId}?modelId=${model.id}`);
+      }
+      setIsOpen(false);
+    } catch {
+      showToast('İlgili kayıt bulunamadı.', 'error');
     }
   };
 

@@ -24,4 +24,5 @@ public class Dataset
     public string? HangfireJobId { get; set; }
     public bool IsProcessed { get; set; }
     public bool IsActive { get; set; }
+    public int ProgressPercentage { get; set; }
 }

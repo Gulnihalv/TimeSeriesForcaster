@@ -21,5 +21,11 @@ public class Model
     public DateTime? TrainingCompletedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public bool IsActive { get; set; }
+    public int ProgressPercentage { get; set; }
+    public ForecastStatus? ForecastStatus { get; set; }
+    public int ForecastProgressPercentage { get; set; }
+    public string? ForecastErrorMessage { get; set; }
+    public DateTime? ForecastStartedAt { get; set; }
+    public DateTime? ForecastCompletedAt { get; set; }
 
 }

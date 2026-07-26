@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card/Card';
 import Button from '../components/Button/Button';
 import ProjectList from '../features/projects/components/ProjectList';
+import RecentActivityFeed from '../features/dashboard/components/RecentActivityFeed';
 import { useAuthStore } from '../store/authStore';
 import { getProjects, type Project } from '../features/projects/api/projectApi';
 import { useApiData } from '../hooks/useApiData';
@@ -82,6 +83,13 @@ const DashboardPage = () => {
           <span className={styles.statLabel}>En son proje</span>
         </Card>
       </div>
+
+      <section className={styles.recentSection}>
+        <div className={styles.sectionHeader}>
+          <h3 className={styles.sectionTitle}>Son işlemler</h3>
+        </div>
+        <RecentActivityFeed />
+      </section>
 
       <section className={styles.recentSection}>
         <div className={styles.sectionHeader}>

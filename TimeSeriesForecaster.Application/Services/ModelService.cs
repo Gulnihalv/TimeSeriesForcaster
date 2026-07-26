@@ -144,11 +144,17 @@ public class ModelService : IModelService
             return Result.Failure(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
 
-        var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: false);
+        var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: true);
         if (model == null || model.Status != ModelStatus.Completed)
         {
             return Result.Failure(ResultErrorType.ValidationError, "Tahmin üretebilmek için modelin eğitiminin tamamlanmış olması gerekir.");
         }
+
+        model.ForecastStatus = TimeSeriesForecaster.ForecastStatus.Queued;
+        model.ForecastProgressPercentage = 0;
+        model.ForecastErrorMessage = null;
+        model.ForecastCompletedAt = null;
+        await _unitOfWork.SaveChangesAsync();
 
         _backgroundJobClient.Enqueue<IForecastingService>(service =>
             service.ProcessForecastAsync(modelId, horizon, CancellationToken.None));

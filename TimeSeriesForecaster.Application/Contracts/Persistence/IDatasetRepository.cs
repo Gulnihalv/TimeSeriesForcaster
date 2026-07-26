@@ -14,5 +14,6 @@ public interface IDatasetRepository
     Task<bool> IsDatasetProcessedAsync(int id);
     Task<int> GetDatasetRecordCountAsync(int id);
     // Task<(DateTime startDate, DateTime endDate)> GetDatasetDateRangeAsync(int id); // Bu datapointsteki GetDateRangeAsync methedu ile aynı olduğundan bunu kaldırıyorum.
-    
+    Task<IEnumerable<Dataset>> GetRecentForUserAsync(int userId, int take);
+
 }

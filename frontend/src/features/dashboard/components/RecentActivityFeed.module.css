@@ -1,0 +1,8 @@
+.scrollArea {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--spacing-medium);
+  overflow-x: auto;
+  padding-bottom: 4px;
+}

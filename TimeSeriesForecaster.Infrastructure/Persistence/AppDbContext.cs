@@ -14,7 +14,17 @@ public class AppDbContext : IdentityDbContext<AppUser, IdentityRole<int>, int>
     public virtual DbSet<Prediction> Predictions { get; set; }
     public virtual DbSet<ModelMetric> ModelMetrics { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<DashboardDismissal> DashboardDismissals { get; set; }
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<DashboardDismissal>()
+            .HasIndex(d => new { d.UserId, d.EntityType, d.EntityId })
+            .IsUnique();
     }
 }

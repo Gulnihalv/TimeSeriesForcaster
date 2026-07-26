@@ -33,77 +33,124 @@ public class DataProcessingService : IDataProcessingService
         if (dataset == null) return Result.Failure(ResultErrorType.NotFound, ErrorMessages.DatasetNotFound);
 
         var filePath = Path.Combine(_env.ContentRootPath, dataset.FilePath!);
-        var dataPoints = new List<DataPoint>();
 
-        DateTime minDate = DateTime.MaxValue;
-        DateTime maxDate = DateTime.MinValue;
-
-        using (var reader = new StreamReader(filePath))
-        using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+        try
         {
-            csv.Read();
-            csv.ReadHeader();
+            dataset.Status = ProcessingStatus.Processing;
+            dataset.ProgressPercentage = 0;
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            string dateColumn = dataset.DateColumn!;
-            string targetColumn = dataset.TargetColumn!;
+            // Yüzdelik ilerlemeyi hesaplayabilmek için toplam satır sayısını
+            // önceden (header hariç) sayıyoruz.
+            var totalRows = File.ReadLines(filePath).Count() - 1;
 
-            while (csv.Read())
+            var dataPoints = new List<DataPoint>();
+            DateTime minDate = DateTime.MaxValue;
+            DateTime maxDate = DateTime.MinValue;
+            var processedRows = 0;
+            var lastPersistedThreshold = 0;
+
+            using (var reader = new StreamReader(filePath))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
-                try
+                csv.Read();
+                csv.ReadHeader();
+
+                string dateColumn = dataset.DateColumn!;
+                string targetColumn = dataset.TargetColumn!;
+
+                while (csv.Read())
                 {
-                    var rawTimeStamp = csv.GetField<DateTime>(dateColumn);
-                    var timeStamp = DateTime.SpecifyKind(rawTimeStamp, DateTimeKind.Utc);
-                    var value = csv.GetField<decimal>(targetColumn);
-
-                    if (timeStamp < minDate) minDate = timeStamp;
-                    if (timeStamp > maxDate) maxDate = timeStamp;
-
-                    var newDataPoint = new DataPoint
+                    try
                     {
-                        DatasetId = dataset.Id,
-                        Timestamp = timeStamp,
-                        Value = value,
-                        IsOutlier = false,
-                        CreatedAt = DateTime.UtcNow
-                    };
+                        var rawTimeStamp = csv.GetField<DateTime>(dateColumn);
+                        var timeStamp = DateTime.SpecifyKind(rawTimeStamp, DateTimeKind.Utc);
+                        var value = csv.GetField<decimal>(targetColumn);
 
-                    dataPoints.Add(newDataPoint);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[TEŞHİS] CSV satırı okunamadı: {ex.GetType().Name} - {ex.Message}");
+                        if (timeStamp < minDate) minDate = timeStamp;
+                        if (timeStamp > maxDate) maxDate = timeStamp;
+
+                        var newDataPoint = new DataPoint
+                        {
+                            DatasetId = dataset.Id,
+                            Timestamp = timeStamp,
+                            Value = value,
+                            IsOutlier = false,
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        dataPoints.Add(newDataPoint);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[TEŞHİS] CSV satırı okunamadı: {ex.GetType().Name} - {ex.Message}");
+                    }
+                    finally
+                    {
+                        processedRows++;
+                        if (totalRows > 0)
+                        {
+                            var pct = (int)(processedRows / (double)totalRows * 100);
+                            var threshold = pct / 10 * 10;
+                            if (threshold > lastPersistedThreshold)
+                            {
+                                lastPersistedThreshold = threshold;
+                                dataset.ProgressPercentage = threshold;
+                                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                            }
+                        }
+                    }
                 }
             }
-        }
 
-        if (!dataPoints.Any())
+            if (!dataPoints.Any())
+            {
+                dataset.IsProcessed = false;
+                dataset.Status = ProcessingStatus.Failed;
+                dataset.ErrorMessage = "Dosyadan veri okunamadı veya sütunlar yanlış.";
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var notifyResult = await NotifyDatasetResultAsync(dataset, success: false);
+                if (!notifyResult.IsSuccess)
+                {
+                    Console.WriteLine($"[TEŞHİS] Bildirim gönderilemedi: {notifyResult.Error}");
+                }
+                return Result.Failure(ResultErrorType.BadRequest, dataset.ErrorMessage);
+            }
+
+            await _dataPointRepository.CreateDataPointsBulkAsync(dataPoints);
+
+            dataset.IsProcessed = true;
+            dataset.Status = ProcessingStatus.Completed;
+            dataset.ProgressPercentage = 100;
+            dataset.RecordCount = dataPoints.Count;
+            dataset.StartDate = minDate;
+            dataset.EndDate = maxDate;
+            dataset.UpdatedAt = DateTime.UtcNow;
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            var successNotifyResult = await NotifyDatasetResultAsync(dataset, success: true);
+            if (!successNotifyResult.IsSuccess)
+            {
+                Console.WriteLine($"[TEŞHİS] Bildirim gönderilemedi: {successNotifyResult.Error}");
+            }
+            return Result.Success();
+        }
+        catch (Exception ex)
         {
+            // Parse döngüsünün dışında (örn. dosya I/O hatası) beklenmeyen bir
+            // istisna oluşursa dataset "Processing"de asılı kalmasın.
             dataset.IsProcessed = false;
-            dataset.ErrorMessage = "Dosyadan veri okunamadı veya sütunlar yanlış.";
+            dataset.Status = ProcessingStatus.Failed;
+            dataset.ErrorMessage = ex.Message;
+            dataset.UpdatedAt = DateTime.UtcNow;
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             var notifyResult = await NotifyDatasetResultAsync(dataset, success: false);
             if (!notifyResult.IsSuccess)
             {
                 Console.WriteLine($"[TEŞHİS] Bildirim gönderilemedi: {notifyResult.Error}");
             }
-            return Result.Failure(ResultErrorType.BadRequest, dataset.ErrorMessage);
+            return Result.Failure(ResultErrorType.Unexpected, dataset.ErrorMessage);
         }
-
-        await _dataPointRepository.CreateDataPointsBulkAsync(dataPoints);
-
-        dataset.IsProcessed = true;
-        dataset.RecordCount = dataPoints.Count;
-        dataset.StartDate = minDate;
-        dataset.EndDate = maxDate;
-        dataset.UpdatedAt = DateTime.UtcNow;
-        
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        var successNotifyResult = await NotifyDatasetResultAsync(dataset, success: true);
-        if (!successNotifyResult.IsSuccess)
-        {
-            Console.WriteLine($"[TEŞHİS] Bildirim gönderilemedi: {successNotifyResult.Error}");
-        }
-        return Result.Success();
     }
 
     private async Task<Result> NotifyDatasetResultAsync(Dataset dataset, bool success)
