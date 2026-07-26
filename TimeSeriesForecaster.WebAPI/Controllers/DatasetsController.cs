@@ -19,6 +19,8 @@ public class DatasetsController : ApiControllerBase
     }
 
     [HttpPost("/api/projects/{projectId}/datasets/upload")]
+    [RequestSizeLimit(524_288_000)] // ~500 MB - Kestrel'in varsayılan 30 MB sınırını bu endpoint için gevşetir
+    [RequestFormLimits(MultipartBodyLengthLimit = 524_288_000)] // form/multipart okuma katmanının kendi ayrı sınırı
     public async Task<IActionResult> CreateDatasetFromUpload(int projectId, [FromForm] string name, IFormFile file, [FromForm] string dateColumnName, [FromForm] string targetColumnName)
     {
         var userId = User.GetUserId();
