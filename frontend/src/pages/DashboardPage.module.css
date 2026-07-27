@@ -8,48 +8,59 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-large);
+  gap: var(--spacing-medium);
   position: relative;
   overflow: hidden;
-  padding: var(--spacing-xlarge);
+  padding: var(--spacing-large);
 }
 
 .heroText {
-  max-width: 480px;
+  max-width: 420px;
   position: relative;
   z-index: 1;
 }
 
 .heroEyebrow {
   display: inline-block;
-  font-size: var(--font-size-caption);
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: #C9C4FF;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .heroTitle {
-  margin: 0 0 10px 0;
-  font-size: 1.7rem;
+  margin: 0 0 8px 0;
+  font-size: 1.35rem;
   line-height: 1.25;
   color: #fff;
 }
 
 .heroDescription {
-  margin: 0 0 var(--spacing-large) 0;
+  margin: 0 0 var(--spacing-medium) 0;
   color: #B9BAC9;
-  font-size: var(--font-size-body);
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 .heroButton {
   width: auto;
-  padding: 12px 22px;
+  padding: 9px 18px;
+  font-size: var(--font-size-caption);
 }
 
 .heroIcon {
-  color: #3A3C52;
   position: relative;
   z-index: 0;
+  flex-shrink: 0;
+  width: 160px;
+}
+
+.heroChartSvg {
+  width: 100%;
+  height: auto;
+  opacity: 0.9;
 }
 
 .statRow {
@@ -60,29 +71,37 @@
 
 .statCard {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: var(--spacing-small);
+  padding: var(--spacing-small) var(--spacing-medium);
 }
 
 .statIcon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--border-radius-small);
   background-color: rgba(255, 255, 255, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.statTexts {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 .statValue {
-  font-size: 1.9rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.15;
 }
 
 .statValueSmall {
-  font-size: 1.15rem;
+  font-size: 0.85rem;
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
@@ -91,7 +110,7 @@
 }
 
 .statLabel {
-  font-size: var(--font-size-caption);
+  font-size: 0.7rem;
   color: var(--color-text-secondary);
   font-weight: 600;
 }

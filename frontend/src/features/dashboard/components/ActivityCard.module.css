@@ -1,11 +1,26 @@
 .card {
   position: relative;
   display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium);
+  flex: 0 0 calc(25% - var(--spacing-medium) * 3 / 4);
+  min-width: 260px;
+}
+
+.header {
+  display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-medium);
-  flex: 0 0 260px;
-  width: 260px;
+}
+
+.entityIconBadge {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-small);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .info {
@@ -34,8 +49,8 @@
 
 .chartWrap {
   position: relative;
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -47,9 +62,28 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-small);
+  padding-top: var(--spacing-small);
+  border-top: 1px solid var(--color-border);
+}
+
+.timeLabel {
   font-size: var(--font-size-caption);
-  font-weight: 700;
-  color: var(--color-text);
+  color: var(--color-text-muted);
+}
+
+.actionLabel {
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  color: var(--color-primary);
 }
 
 .dismissButton {
@@ -65,7 +99,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  opacity: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.card:hover .dismissButton {
+  opacity: 1;
 }
 
 .dismissButton:hover {
