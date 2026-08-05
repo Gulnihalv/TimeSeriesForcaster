@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Contracts.Application;
@@ -20,8 +22,9 @@ public class ModelProcessingService : IModelProcessingService
     private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly ILogger<ModelProcessingService> _logger;
 
-    public ModelProcessingService(IHttpClientFactory httpClientFactory, IDataPointRepository dataPointRepository, IModelRepository modelRepository, IModelMetricRepository modelMetricRepository, IProjectRepository projectRepository, INotificationService notificationService, IUnitOfWork unitOfWork, IServiceScopeFactory serviceScopeFactory)
+    public ModelProcessingService(IHttpClientFactory httpClientFactory, IDataPointRepository dataPointRepository, IModelRepository modelRepository, IModelMetricRepository modelMetricRepository, IProjectRepository projectRepository, INotificationService notificationService, IUnitOfWork unitOfWork, IServiceScopeFactory serviceScopeFactory, ILogger<ModelProcessingService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _dataPointRepository = dataPointRepository;
@@ -31,151 +34,162 @@ public class ModelProcessingService : IModelProcessingService
         _notificationService = notificationService;
         _unitOfWork = unitOfWork;
         _serviceScopeFactory = serviceScopeFactory;
+        _logger = logger;
     }
 
     public async Task<Result> ProcessModelAsync(int modelId, CancellationToken cancellationToken = default)
     {
-        var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: true);
-        if (model == null) return Result.Failure(ResultErrorType.NotFound, ErrorMessages.ModelNotFound);
-
-        model.Status = ModelStatus.Training;
-        model.TrainingStartedAt = DateTime.UtcNow;
-        model.ProgressPercentage = 5;
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        // Prophet'in fit() çağrısı tek, bloklayıcı ve ara ilerleme sinyali
-        // vermeyen bir işlem (ml-service'te epoch/adım bazlı bir geri bildirim
-        // yok). Bu yüzden burada gerçek bir ölçüm değil, zamana dayalı tahmini
-        // bir ilerleme simülasyonu çalıştırıyoruz - HTTP çağrısı boyunca
-        // yüzdeyi kademeli olarak artırıp çağrı bitince 100'e sabitliyoruz.
-        using var progressCts = new CancellationTokenSource();
-        var progressTask = SimulateTrainingProgressAsync(model.Id, progressCts.Token);
-
-        try
+        using (_logger.BeginScope(new Dictionary<string, object> { ["ModelId"] = modelId }))
         {
-            var dataPoints = await _dataPointRepository.GetDataPointsAsync(datasetId: model.DatasetId);
-            if (dataPoints == null || !dataPoints.Any())
-            {
-                throw new Exception("Model eğitimi için veri noktaları bulunamadı.");
-            }
-    
-            var trainingData = dataPoints.Select(dp => new
-            {
-                ds = dp.Timestamp.ToString("o"), // Prophet'in anlaması için düzenleme
-                y = dp.Value
-            }).ToList();
+            var sw = Stopwatch.StartNew();
+            _logger.LogInformation("Model processing started.");
 
-            ProphetHyperparametersDto? hyperparameters = string.IsNullOrEmpty(model.Hyperparameters)
-                ? null
-                : JsonSerializer.Deserialize<ProphetHyperparametersDto>(model.Hyperparameters, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: true);
+            if (model == null) return Result.Failure(ResultErrorType.NotFound, ErrorMessages.ModelNotFound);
 
-            var requestPayload = new
-            {
-                data = trainingData,
-                hyperparameters
-            };
+            model.Status = ModelStatus.Training;
+            model.TrainingStartedAt = DateTime.UtcNow;
+            model.ProgressPercentage = 5;
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            var httpClient = _httpClientFactory.CreateClient(MlServiceClients.MlServiceLongRunning);
-            var stringContent = new StringContent(
-                JsonSerializer.Serialize(requestPayload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower }),
-                Encoding.UTF8, "application/json");
-            
-            HttpResponseMessage httpResponse;
+            // Prophet'in fit() çağrısı tek, bloklayıcı ve ara ilerleme sinyali
+            // vermeyen bir işlem (ml-service'te epoch/adım bazlı bir geri bildirim
+            // yok). Bu yüzden burada gerçek bir ölçüm değil, zamana dayalı tahmini
+            // bir ilerleme simülasyonu çalıştırıyoruz - HTTP çağrısı boyunca
+            // yüzdeyi kademeli olarak artırıp çağrı bitince 100'e sabitliyoruz.
+            using var progressCts = new CancellationTokenSource();
+            var progressTask = SimulateTrainingProgressAsync(model.Id, progressCts.Token);
+
             try
             {
-                httpResponse = await httpClient.PostAsync($"train/{model.Algorithm!.ToLower()}", stringContent, cancellationToken);
-            }
-            catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
-            {
-                throw new Exception(ErrorMessages.ModelTrainingAPIError, ex);
-            }
-
-            if (!httpResponse.IsSuccessStatusCode)
-            {
-                throw new Exception(ErrorMessages.ModelTrainingAPIError);
-            }
-
-            var responseBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
-            var trainingResult = JsonSerializer.Deserialize<PythonTrainingResponse>(responseBody, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
-            });
-
-            if (trainingResult?.ModelPath == null)
-            {
-                throw new Exception(ErrorMessages.InvalidModelPathResponse);
-            }
-
-            var modelPath = trainingResult?.ModelPath;
-            model.TrainingCompletedAt = DateTime.UtcNow;
-            model.Status = ModelStatus.Completed;
-            model.ModelFilePath = modelPath;
-            model.ErrorMessage = null;
-            model.ProgressPercentage = 100;
-
-            if (trainingResult?.Metrics != null)
-            {
-                var calculatedAt = DateTime.UtcNow;
-                var metricEntities = new List<ModelMetric>
+                var dataPoints = await _dataPointRepository.GetDataPointsAsync(datasetId: model.DatasetId);
+                if (dataPoints == null || !dataPoints.Any())
                 {
-                    new ModelMetric
-                    {
-                        ModelId = model.Id,
-                        MetricName = MetricName.MAE,
-                        MetricValue = (decimal)trainingResult.Metrics.Mae,
-                        CalculatedAt = calculatedAt
-                    },
-                    new ModelMetric
-                    {
-                        ModelId = model.Id,
-                        MetricName = MetricName.RMSE,
-                        MetricValue = (decimal)trainingResult.Metrics.Rmse,
-                        CalculatedAt = calculatedAt
-                    }
+                    _logger.LogWarning("No data points found for DatasetId: {DatasetId}. Model training cannot proceed.", model.DatasetId);
+                    throw new Exception("Model eğitimi için veri noktaları bulunamadı.");
+                }
+
+                var trainingData = dataPoints.Select(dp => new
+                {
+                    ds = dp.Timestamp.ToString("o"), // Prophet'in anlaması için düzenleme
+                    y = dp.Value
+                }).ToList();
+
+                ProphetHyperparametersDto? hyperparameters = string.IsNullOrEmpty(model.Hyperparameters)
+                    ? null
+                    : JsonSerializer.Deserialize<ProphetHyperparametersDto>(model.Hyperparameters, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                var requestPayload = new
+                {
+                    data = trainingData,
+                    hyperparameters
                 };
 
-                await _modelMetricRepository.CreateMetricsAsync(metricEntities);
-            }
+                var httpClient = _httpClientFactory.CreateClient(MlServiceClients.MlServiceLongRunning);
+                var stringContent = new StringContent(
+                    JsonSerializer.Serialize(requestPayload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower }),
+                    Encoding.UTF8, "application/json");
 
-            await NotifyModelResultAsync(model, success: true);
-        }
-        catch (OperationCanceledException)
-        {
-            model.Status = ModelStatus.Cancelled;
-            model.ErrorMessage = "Model eğitimi iptal edildi.";
-            await NotifyModelResultAsync(model, success: false);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            model.Status = ModelStatus.Failed;
-            model.ErrorMessage = ex.Message;
+                HttpResponseMessage httpResponse;
+                try
+                {
+                    httpResponse = await httpClient.PostAsync($"train/{model.Algorithm!.ToLower()}", stringContent, cancellationToken);
+                }
+                catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+                {
+                    throw new Exception(ErrorMessages.ModelTrainingAPIError, ex);
+                }
 
-            model.ProgressPercentage = 100;
-            await NotifyModelResultAsync(model, success: false);
-            return Result.Failure(ResultErrorType.Unexpected, model.ErrorMessage);
-        }
-        finally
-        {
-            progressCts.Cancel();
-            try
-            {
-                await progressTask;
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    throw new Exception(ErrorMessages.ModelTrainingAPIError);
+                }
+
+                var responseBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+                var trainingResult = JsonSerializer.Deserialize<PythonTrainingResponse>(responseBody, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+                });
+
+                if (trainingResult?.ModelPath == null)
+                {
+                    throw new Exception(ErrorMessages.InvalidModelPathResponse);
+                }
+
+                var modelPath = trainingResult?.ModelPath;
+                model.TrainingCompletedAt = DateTime.UtcNow;
+                model.Status = ModelStatus.Completed;
+                model.ModelFilePath = modelPath;
+                model.ErrorMessage = null;
+                model.ProgressPercentage = 100;
+
+                if (trainingResult?.Metrics != null)
+                {
+                    var calculatedAt = DateTime.UtcNow;
+                    var metricEntities = new List<ModelMetric>
+                    {
+                        new ModelMetric
+                        {
+                            ModelId = model.Id,
+                            MetricName = MetricName.MAE,
+                            MetricValue = (decimal)trainingResult.Metrics.Mae,
+                            CalculatedAt = calculatedAt
+                        },
+                        new ModelMetric
+                        {
+                            ModelId = model.Id,
+                            MetricName = MetricName.RMSE,
+                            MetricValue = (decimal)trainingResult.Metrics.Rmse,
+                            CalculatedAt = calculatedAt
+                        }
+                    };
+
+                    await _modelMetricRepository.CreateMetricsAsync(metricEntities);
+                }
+
+                await NotifyModelResultAsync(model, success: true);
             }
             catch (OperationCanceledException)
             {
-                // Beklenen durum: ana iş bitince ilerleme simülasyonunu bilerek iptal ediyoruz.
-                // Bu bir hata değil, o yüzden loglamıyoruz.
+                model.Status = ModelStatus.Cancelled;
+                model.ErrorMessage = "Model eğitimi iptal edildi.";
+                await NotifyModelResultAsync(model, success: false);
+                throw;
             }
             catch (Exception ex)
             {
-                // TODO Loglama kurulcak
-            }
-            await _unitOfWork.SaveChangesAsync(CancellationToken.None); 
-        }
+                model.Status = ModelStatus.Failed;
+                model.ErrorMessage = ex.Message;
 
-        return Result.Success();
+                model.ProgressPercentage = 100;
+                await NotifyModelResultAsync(model, success: false);
+
+                _logger.LogError(ex, "Model training failed.");
+                return Result.Failure(ResultErrorType.Unexpected, model.ErrorMessage);
+            }
+            finally
+            {
+                progressCts.Cancel();
+                try
+                {
+                    await progressTask;
+                }
+                catch (OperationCanceledException)
+                {
+                    // Beklenen durum: ana iş bitince simülasyon iptal edilir
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Model ilerleme simülasyonu beklenmedik şekilde sonlandı. ModelId: {ModelId}", modelId);
+                }
+                await _unitOfWork.SaveChangesAsync(CancellationToken.None); 
+            }
+            sw.Stop();
+            _logger.LogInformation("Model processing completed in {ElapsedMilliseconds} ms.", sw.ElapsedMilliseconds);
+
+            return Result.Success();
+        }   
     }
 
     private async Task SimulateTrainingProgressAsync(int modelId, CancellationToken ct)

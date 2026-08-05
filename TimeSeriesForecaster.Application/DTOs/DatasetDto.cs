@@ -20,4 +20,5 @@ public class DatasetDto
     public bool IsProcessed { get; set; }
     public string? ErrorMessage { get; set; }
     public bool IsActive { get; set; }
+    public int? SkippedRowCount { get; set; }
 }

@@ -25,4 +25,5 @@ public class Dataset
     public bool IsProcessed { get; set; }
     public bool IsActive { get; set; }
     public int ProgressPercentage { get; set; }
+    public int? SkippedRowCount { get; set; }
 }
