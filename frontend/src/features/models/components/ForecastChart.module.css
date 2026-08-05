@@ -6,6 +6,48 @@
   color: var(--color-text-secondary);
 }
 
+.statusBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-small);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: var(--border-radius-medium);
+  margin-bottom: var(--spacing-small);
+}
+
+.statusBanner.generating {
+  background-color: var(--color-status-training-bg);
+  color: var(--color-status-training-text);
+}
+
+.statusBanner.failed {
+  background-color: var(--color-status-failed-bg);
+  color: var(--color-status-failed-text);
+}
+
+.statusBanner.cancelled {
+  background-color: var(--color-status-cancelled-bg);
+  color: var(--color-status-cancelled-text);
+}
+
+.progressTrack {
+  flex: 1;
+  height: 6px;
+  border-radius: var(--border-radius-pill);
+  background-color: color-mix(in srgb, currentColor 20%, transparent);
+  overflow: hidden;
+  min-width: 80px;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: currentColor;
+  border-radius: var(--border-radius-pill);
+  transition: width 0.3s ease;
+}
+
 .svg {
   width: 100%;
   height: auto;

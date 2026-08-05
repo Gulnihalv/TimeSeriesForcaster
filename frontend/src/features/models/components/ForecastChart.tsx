@@ -10,26 +10,60 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import type { Prediction } from '../api/modelApi';
+import { ForecastStatus, type Prediction } from '../api/modelApi';
 import styles from './ForecastChart.module.css';
 
 interface ForecastChartProps {
   predictions: Prediction[];
+  forecastStatus?: ForecastStatus | null;
+  forecastProgressPercentage?: number;
+  forecastErrorMessage?: string | null;
 }
 
 interface ChartPoint {
   date: string;
   predictedValue: number;
   actualValue: number | null;
-  // recharts'ın "band" (aralık) çizmesi için tek bir Area'ya [alt, üst] dizisi veriliyor
-  range: [number, number];
+  range: [number, number]; // recharts Area için [lower, upper] şeklinde array
 }
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString();
 
-const ForecastChart: FC<ForecastChartProps> = ({ predictions }) => {
+const ForecastChart: FC<ForecastChartProps> = ({
+  predictions,
+  forecastStatus,
+  forecastProgressPercentage = 0,
+  forecastErrorMessage,
+}) => {
+  const isGenerating =
+    forecastStatus === ForecastStatus.Queued || forecastStatus === ForecastStatus.Generating;
+  const isFailed = forecastStatus === ForecastStatus.Failed;
+  const isCancelled = forecastStatus === ForecastStatus.Cancelled;
+
+  const statusBanner = isGenerating ? (
+    <div className={`${styles.statusBanner} ${styles.generating}`}>
+      <div className={styles.progressTrack}>
+        <div className={styles.progressFill} style={{ width: `${forecastProgressPercentage}%` }} />
+      </div>
+      <span>Tahmin oluşturuluyor... %{forecastProgressPercentage}</span>
+    </div>
+  ) : isFailed ? (
+    <div className={`${styles.statusBanner} ${styles.failed}`}>
+      Tahmin oluşturma başarısız oldu{forecastErrorMessage ? `: ${forecastErrorMessage}` : '.'}
+    </div>
+  ) : isCancelled ? (
+    <div className={`${styles.statusBanner} ${styles.cancelled}`}>
+      Tahmin oluşturma iptal edildi.
+    </div>
+  ) : null;
+
   if (!predictions || predictions.length === 0) {
-    return <p className={styles.empty}>Henüz tahmin oluşturulmadı.</p>;
+    return (
+      <div className={styles.wrapper}>
+        {statusBanner}
+        {!statusBanner && <p className={styles.empty}>Henüz tahmin oluşturulmadı.</p>}
+      </div>
+    );
   }
 
   const sorted = [...predictions].sort(
@@ -47,6 +81,7 @@ const ForecastChart: FC<ForecastChartProps> = ({ predictions }) => {
 
   return (
     <div className={styles.wrapper}>
+      {statusBanner}
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" />

@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Contracts.Application;
@@ -21,9 +20,8 @@ public class ModelProcessingService : IModelProcessingService
     private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly MlServiceSettings _mlServiceSettings;
 
-    public ModelProcessingService(IHttpClientFactory httpClientFactory, IDataPointRepository dataPointRepository, IModelRepository modelRepository, IModelMetricRepository modelMetricRepository, IProjectRepository projectRepository, INotificationService notificationService, IUnitOfWork unitOfWork, IServiceScopeFactory serviceScopeFactory, IOptions<MlServiceSettings> mlServiceSettings)
+    public ModelProcessingService(IHttpClientFactory httpClientFactory, IDataPointRepository dataPointRepository, IModelRepository modelRepository, IModelMetricRepository modelMetricRepository, IProjectRepository projectRepository, INotificationService notificationService, IUnitOfWork unitOfWork, IServiceScopeFactory serviceScopeFactory)
     {
         _httpClientFactory = httpClientFactory;
         _dataPointRepository = dataPointRepository;
@@ -33,7 +31,6 @@ public class ModelProcessingService : IModelProcessingService
         _notificationService = notificationService;
         _unitOfWork = unitOfWork;
         _serviceScopeFactory = serviceScopeFactory;
-        _mlServiceSettings = mlServiceSettings.Value;
     }
 
     public async Task<Result> ProcessModelAsync(int modelId, CancellationToken cancellationToken = default)
@@ -78,17 +75,27 @@ public class ModelProcessingService : IModelProcessingService
                 hyperparameters
             };
 
-            var httpClient = _httpClientFactory.CreateClient();
+            var httpClient = _httpClientFactory.CreateClient(MlServiceClients.MlServiceLongRunning);
             var stringContent = new StringContent(
                 JsonSerializer.Serialize(requestPayload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower }),
                 Encoding.UTF8, "application/json");
-            var httpResponse = await httpClient.PostAsync($"{_mlServiceSettings.BaseUrl}/train/{model.Algorithm!.ToLower()}", stringContent);
-            if (!httpResponse.IsSuccessStatusCode)
+            
+            HttpResponseMessage httpResponse;
+            try
             {
-                throw new Exception("Model eğitimi sırasında Python API'ında bir hata oluştu.");
+                httpResponse = await httpClient.PostAsync($"train/{model.Algorithm!.ToLower()}", stringContent, cancellationToken);
+            }
+            catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+            {
+                throw new Exception(ErrorMessages.ModelTrainingAPIError, ex);
             }
 
-            var responseBody = await httpResponse.Content.ReadAsStringAsync();
+            if (!httpResponse.IsSuccessStatusCode)
+            {
+                throw new Exception(ErrorMessages.ModelTrainingAPIError);
+            }
+
+            var responseBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
             var trainingResult = JsonSerializer.Deserialize<PythonTrainingResponse>(responseBody, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
@@ -97,7 +104,7 @@ public class ModelProcessingService : IModelProcessingService
 
             if (trainingResult?.ModelPath == null)
             {
-                throw new Exception("Python API'ından geçerli bir model yolu dönmedi.");
+                throw new Exception(ErrorMessages.InvalidModelPathResponse);
             }
 
             var modelPath = trainingResult?.ModelPath;
@@ -133,13 +140,18 @@ public class ModelProcessingService : IModelProcessingService
 
             await NotifyModelResultAsync(model, success: true);
         }
+        catch (OperationCanceledException)
+        {
+            model.Status = ModelStatus.Cancelled;
+            model.ErrorMessage = "Model eğitimi iptal edildi.";
+            await NotifyModelResultAsync(model, success: false);
+            throw;
+        }
         catch (Exception ex)
         {
             model.Status = ModelStatus.Failed;
             model.ErrorMessage = ex.Message;
-            // İşlem terminal duruma geçti; ilerleme halkası yarıda "takılmış"
-            // görünmesin diye tamamlanmış olarak gösteriyoruz - başarı/hata
-            // farkı Status/renk üzerinden zaten iletiliyor.
+
             model.ProgressPercentage = 100;
             await NotifyModelResultAsync(model, success: false);
             return Result.Failure(ResultErrorType.Unexpected, model.ErrorMessage);
@@ -153,10 +165,14 @@ public class ModelProcessingService : IModelProcessingService
             }
             catch (OperationCanceledException)
             {
-                // beklenen durum: HTTP çağrısı bitince simülasyon iptal edilir
+                // Beklenen durum: ana iş bitince ilerleme simülasyonunu bilerek iptal ediyoruz.
+                // Bu bir hata değil, o yüzden loglamıyoruz.
             }
-
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            catch (Exception ex)
+            {
+                // TODO Loglama kurulcak
+            }
+            await _unitOfWork.SaveChangesAsync(CancellationToken.None); 
         }
 
         return Result.Success();

@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Contracts.Application;
@@ -17,16 +16,14 @@ public class ForecastingService : IForecastingService
     private readonly IPredictionRepository _predictionRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly MlServiceSettings _mlServiceSettings;
 
-    public ForecastingService(IHttpClientFactory httpClientFactory, IModelRepository modelRepository, IPredictionRepository predictionRepository, IUnitOfWork unitOfWork, IServiceScopeFactory serviceScopeFactory, IOptions<MlServiceSettings> mlServiceSettings)
+    public ForecastingService(IHttpClientFactory httpClientFactory, IModelRepository modelRepository, IPredictionRepository predictionRepository, IUnitOfWork unitOfWork, IServiceScopeFactory serviceScopeFactory)
     {
         _httpClientFactory = httpClientFactory;
         _modelRepository = modelRepository;
         _predictionRepository = predictionRepository;
         _unitOfWork = unitOfWork;
         _serviceScopeFactory = serviceScopeFactory;
-        _mlServiceSettings = mlServiceSettings.Value;
     }
 
     public async Task<Result> ProcessForecastAsync(int modelId, int horizon, CancellationToken cancellationToken = default)
@@ -57,15 +54,15 @@ public class ForecastingService : IForecastingService
         try
         {
             var requestBody = new { model_path = model.ModelFilePath, horizon };
-            var httpClient = _httpClientFactory.CreateClient();
+            var httpClient = _httpClientFactory.CreateClient(MlServiceClients.MlServiceStandard);
             var stringContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
             HttpResponseMessage httpResponse;
             try
             {
-                httpResponse = await httpClient.PostAsync($"{_mlServiceSettings.BaseUrl}/predict/{model.Algorithm!.ToLower()}", stringContent, cancellationToken);
+                httpResponse = await httpClient.PostAsync($"predict/{model.Algorithm!.ToLower()}", stringContent, cancellationToken);
             }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
                 throw new Exception(ErrorMessages.ForecastGenerationFailed, ex);
             }
@@ -122,6 +119,13 @@ public class ForecastingService : IForecastingService
             model.ForecastErrorMessage = null;
             return Result.Success();
         }
+        catch (OperationCanceledException)
+        {
+            model.ForecastStatus = ForecastStatus.Cancelled;
+            model.ForecastErrorMessage = "Tahmin oluşturma iptal edildi.";
+            model.ForecastCompletedAt = DateTime.UtcNow;
+            throw;
+        }
         catch (Exception ex)
         {
             model.ForecastStatus = ForecastStatus.Failed;
@@ -139,10 +143,17 @@ public class ForecastingService : IForecastingService
             }
             catch (OperationCanceledException)
             {
-                // beklenen durum: HTTP çağrısı bitince simülasyon iptal edilir
+                // Beklenen durum: ana iş bitince ilerleme simülasyonunu bilerek iptal ediyoruz.
+                // Bu bir hata değil, o yüzden loglamıyoruz.
             }
-
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            catch (Exception ex)
+            {
+                // Beklenmeyen bir hata: ilerleme simülasyonu kendi içinde patlamış.
+                // Asıl işlemi (ve asıl exception'ı) bozmaması için yutuyoruz, ama iz bırakıyoruz.
+                //_logger.LogWarning(ex, "Forecast ilerleme simülasyonu beklenmedik şekilde sonlandı. ModelId: {ModelId}", modelId);
+                // TODO Loglama kurulcak
+            }
+            await _unitOfWork.SaveChangesAsync(CancellationToken.None); 
         }
     }
 

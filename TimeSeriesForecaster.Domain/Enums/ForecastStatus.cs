@@ -5,5 +5,6 @@ public enum ForecastStatus
     Queued,
     Generating,
     Completed,
-    Failed
+    Failed,
+    Cancelled
 }

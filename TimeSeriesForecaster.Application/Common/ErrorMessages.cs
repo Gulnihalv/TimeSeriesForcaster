@@ -15,4 +15,6 @@ public static class ErrorMessages
     public const string NotificationNotFound = "Bildirim bulunamadı.";
     public const string ModelNotFound = "Model bulunamadı.";
     public const string InvalidEntityType = "Geçersiz varlık türü.";
+    public const string ModelTrainingAPIError = "Model eğitimi sırasında Python API'ında bir hata oluştu.";
+    public const string InvalidModelPathResponse = "Python API'ından geçerli bir model yolu dönmedi.";
 }

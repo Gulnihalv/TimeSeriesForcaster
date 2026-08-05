@@ -5,8 +5,18 @@ export const ModelStatus = {
   Training: 1,
   Completed: 2,
   Failed: 3,
+  Cancelled: 4,
 } as const;
 export type ModelStatus = (typeof ModelStatus)[keyof typeof ModelStatus];
+
+export const ForecastStatus = {
+  Queued: 0,
+  Generating: 1,
+  Completed: 2,
+  Failed: 3,
+  Cancelled: 4,
+} as const;
+export type ForecastStatus = (typeof ForecastStatus)[keyof typeof ForecastStatus];
 
 export const MetricName = {
   MAE: 0,
@@ -28,6 +38,11 @@ export interface Model {
   trainingCompletedAt: string | null;
   createdAt: string;
   isActive: boolean;
+  forecastStatus: ForecastStatus | null;
+  forecastProgressPercentage: number;
+  forecastErrorMessage: string | null;
+  forecastStartedAt: string | null;
+  forecastCompletedAt: string | null;
 }
 
 export interface Prediction {

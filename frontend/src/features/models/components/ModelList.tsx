@@ -21,7 +21,7 @@ interface ModelListProps {
 }
 
 const isActive = (status: ModelStatus) =>
-  status === ModelStatus.Queued || status === ModelStatus.Training;
+  status === ModelStatus.Queued || status === ModelStatus.Training || status === ModelStatus.Cancelled;
 
 const ModelList: FC<ModelListProps> = ({ datasetId, selectedModelIds, onSelectionChange, onModelDeleted }) => {
   const shouldPoll = useCallback(

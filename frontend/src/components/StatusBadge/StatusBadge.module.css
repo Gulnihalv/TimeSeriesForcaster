@@ -37,3 +37,8 @@
   background-color: var(--color-status-failed-bg);
   color: var(--color-status-failed-text);
 }
+
+.cancelled {
+  background-color: var(--color-status-cancelled-bg);
+  color: var(--color-status-cancelled-text);
+}

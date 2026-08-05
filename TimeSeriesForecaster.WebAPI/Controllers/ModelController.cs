@@ -93,7 +93,7 @@ public class ModelController : ApiControllerBase
             return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var result = await _modelService.GetModelComponentsAsync(id, userId.Value);
+        var result = await _modelService.GetModelComponentsAsync(id, userId.Value, CancellationToken.None);
         return ToActionResult(result);
     }
 }

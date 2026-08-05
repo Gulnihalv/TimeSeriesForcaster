@@ -11,6 +11,7 @@ const STATUS_COLOR_VAR: Record<DashboardActivityStatus, string> = {
   [DashboardActivityStatus.Processing]: 'var(--color-status-training-text)',
   [DashboardActivityStatus.Completed]: 'var(--color-status-completed-text)',
   [DashboardActivityStatus.Failed]: 'var(--color-status-failed-text)',
+  [DashboardActivityStatus.Cancelled]: 'var(--color-status-cancelled-text)',
 };
 
 const STATUS_TRACK_VAR: Record<DashboardActivityStatus, string> = {
@@ -18,6 +19,7 @@ const STATUS_TRACK_VAR: Record<DashboardActivityStatus, string> = {
   [DashboardActivityStatus.Processing]: 'var(--color-status-training-bg)',
   [DashboardActivityStatus.Completed]: 'var(--color-status-completed-bg)',
   [DashboardActivityStatus.Failed]: 'var(--color-status-failed-bg)',
+  [DashboardActivityStatus.Cancelled]: 'var(--color-status-cancelled-bg)',
 };
 
 const STATUS_LABELS: Record<'Dataset' | 'Model' | 'Forecast', Record<DashboardActivityStatus, string>> = {
@@ -26,18 +28,21 @@ const STATUS_LABELS: Record<'Dataset' | 'Model' | 'Forecast', Record<DashboardAc
     [DashboardActivityStatus.Processing]: 'Yükleniyor',
     [DashboardActivityStatus.Completed]: 'Tamamlandı',
     [DashboardActivityStatus.Failed]: 'Hata',
+    [DashboardActivityStatus.Cancelled]: 'İptal Edildi',
   },
   Model: {
     [DashboardActivityStatus.Queued]: 'Kuyrukta',
     [DashboardActivityStatus.Processing]: 'Eğitiliyor',
     [DashboardActivityStatus.Completed]: 'Tamamlandı',
     [DashboardActivityStatus.Failed]: 'Hata',
+    [DashboardActivityStatus.Cancelled]: 'İptal Edildi',
   },
   Forecast: {
     [DashboardActivityStatus.Queued]: 'Kuyrukta',
     [DashboardActivityStatus.Processing]: 'Tahmin Üretiliyor',
     [DashboardActivityStatus.Completed]: 'Tamamlandı',
     [DashboardActivityStatus.Failed]: 'Hata',
+    [DashboardActivityStatus.Cancelled]: 'İptal Edildi',
   },
 };
 
@@ -70,6 +75,7 @@ const ACTION_LABELS: Record<DashboardActivityStatus, string | null> = {
   [DashboardActivityStatus.Processing]: null,
   [DashboardActivityStatus.Completed]: 'Görüntüle',
   [DashboardActivityStatus.Failed]: 'Tekrar dene',
+  [DashboardActivityStatus.Cancelled]: 'İptal Edildi',
 };
 
 const formatRelativeTime = (iso: string) => {

@@ -2,7 +2,6 @@ using System.Text;
 using System.Text.Json;
 using AutoMapper;
 using Hangfire;
-using Microsoft.Extensions.Options;
 using TimeSeriesForecaster.Application.Common;
 using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Contracts.Application;
@@ -21,9 +20,8 @@ public class ModelService : IModelService
     private readonly IMapper _mapper;
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly MlServiceSettings _mlServiceSettings;
  
-    public ModelService(IModelRepository modelRepository, IDatasetRepository datasetRepository, IDataPointRepository dataPointRepository, IUnitOfWork unitOfWork, IMapper mapper, IBackgroundJobClient backgroundJobClient, IHttpClientFactory httpClientFactory, IOptions<MlServiceSettings> mlServiceSettings)
+    public ModelService(IModelRepository modelRepository, IDatasetRepository datasetRepository, IDataPointRepository dataPointRepository, IUnitOfWork unitOfWork, IMapper mapper, IBackgroundJobClient backgroundJobClient, IHttpClientFactory httpClientFactory)
     {
         _modelRepository = modelRepository;
         _datasetRepository = datasetRepository;
@@ -32,7 +30,6 @@ public class ModelService : IModelService
         _mapper = mapper;
         _backgroundJobClient = backgroundJobClient;
         _httpClientFactory = httpClientFactory;
-        _mlServiceSettings = mlServiceSettings.Value;
     }
 
     public async Task<Result<IEnumerable<ModelDto>>> GetAllModelsForDatasetAsync(int datasetId, int userId)
@@ -183,7 +180,7 @@ public class ModelService : IModelService
         return Result.Success();
     }
 
-    public async Task<Result<ModelComponentsDto?>> GetModelComponentsAsync(int modelId, int userId)
+    public async Task<Result<ModelComponentsDto?>> GetModelComponentsAsync(int modelId, int userId, CancellationToken cancellationToken = default)
     {
         var userOwnsModel = await _modelRepository.UserOwnsModelAsync(modelId: modelId, userId: userId);
         if (!userOwnsModel)
@@ -201,17 +198,17 @@ public class ModelService : IModelService
         {
             return Result.Failure<ModelComponentsDto?>(ResultErrorType.ValidationError, "Bileşenleri görebilmek için modelin eğitiminin tamamlanmış olması gerekir.");
         }
- 
+        
         var requestBody = new { model_path = model.ModelFilePath };
-        var httpClient = _httpClientFactory.CreateClient();
+        var httpClient = _httpClientFactory.CreateClient(MlServiceClients.MlServiceStandard);
         var stringContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
  
         HttpResponseMessage httpResponse;
         try
         {
-            httpResponse = await httpClient.PostAsync($"{_mlServiceSettings.BaseUrl}/components/{model.Algorithm!.ToLower()}", stringContent);
+            httpResponse = await httpClient.PostAsync($"components/{model.Algorithm!.ToLower()}", stringContent, cancellationToken);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException|| (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             // ML servisine hiç ulaşılamadı (ayakta değil, ağ sorunu vs.)
             return Result.Failure<ModelComponentsDto?>(ResultErrorType.Unexpected, $"ML servisine ulaşılamadı: {ex.Message}");
@@ -222,7 +219,7 @@ public class ModelService : IModelService
             return Result.Failure<ModelComponentsDto?>(ResultErrorType.Unexpected, "Model bileşenleri alınırken Python API'ında bir hata oluştu.");
         }
  
-        var responseBody = await httpResponse.Content.ReadAsStringAsync();
+        var responseBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
         var componentsResult = JsonSerializer.Deserialize<ModelComponentsDto>(responseBody, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,

@@ -5,5 +5,6 @@ public enum ModelStatus
     Queued,
     Training,
     Completed,
-    Failed
+    Failed,
+    Cancelled
 }

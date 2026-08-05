@@ -127,6 +127,7 @@ public class DashboardService : IDashboardService
             ModelStatus.Training => DashboardActivityStatus.Processing,
             ModelStatus.Completed => DashboardActivityStatus.Completed,
             ModelStatus.Failed => DashboardActivityStatus.Failed,
+            ModelStatus.Cancelled => DashboardActivityStatus.Cancelled,
             _ => DashboardActivityStatus.Queued,
         };
 
@@ -154,6 +155,7 @@ public class DashboardService : IDashboardService
             ForecastStatus.Generating => DashboardActivityStatus.Processing,
             ForecastStatus.Completed => DashboardActivityStatus.Completed,
             ForecastStatus.Failed => DashboardActivityStatus.Failed,
+            ForecastStatus.Cancelled => DashboardActivityStatus.Cancelled,
             _ => DashboardActivityStatus.Queued,
         };
 

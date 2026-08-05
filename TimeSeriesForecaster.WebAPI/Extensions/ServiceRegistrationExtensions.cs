@@ -1,4 +1,3 @@
-using AutoMapper;
 using Hangfire;
 using Hangfire.PostgreSql;
 using TimeSeriesForecaster.Application.Configuration;
@@ -67,7 +66,23 @@ public static class ServiceRegistrationExtensions
     public static IServiceCollection AddExternalServiceClients(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<MlServiceSettings>(configuration.GetSection("MlService"));
-        services.AddHttpClient();
+        var mlServiceSettings = configuration.GetSection("MlService").Get<MlServiceSettings>();
+        if (mlServiceSettings == null || string.IsNullOrEmpty(mlServiceSettings.BaseUrl))
+        {
+            throw new InvalidOperationException("ML Service BaseUrl yapılandırılmamış.");
+        }
+
+        services.AddHttpClient(MlServiceClients.MlServiceLongRunning, client =>
+        {
+            client.BaseAddress = new Uri(mlServiceSettings.BaseUrl);
+            client.Timeout = TimeSpan.FromMinutes(mlServiceSettings.TimeoutTrainingMinutes);
+        });
+
+        services.AddHttpClient(MlServiceClients.MlServiceStandard, client =>
+        {
+            client.BaseAddress = new Uri(mlServiceSettings.BaseUrl);
+            client.Timeout = TimeSpan.FromMinutes(mlServiceSettings.TimeoutForecastingMinutes);
+        });
 
         return services;
     }

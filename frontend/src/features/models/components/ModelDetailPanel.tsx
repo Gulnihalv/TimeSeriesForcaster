@@ -9,6 +9,7 @@ import {
   getModelById,
   generateForecast,
   ModelStatus,
+  ForecastStatus,
   MetricName,
   type ModelDetail,
 } from '../api/modelApi';
@@ -38,7 +39,11 @@ const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
   const { showToast } = useToast();
 
   const shouldPoll = useCallback(
-    (model: ModelDetail) => model.status === ModelStatus.Training || awaitingForecast,
+    (model: ModelDetail) =>
+      model.status === ModelStatus.Training ||
+      model.forecastStatus === ForecastStatus.Queued ||
+      model.forecastStatus === ForecastStatus.Generating ||
+      awaitingForecast,
     [awaitingForecast]
   );
 
@@ -49,7 +54,13 @@ const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
   );
 
   useEffect(() => {
-    if (awaitingForecast && model && model.predictions.length > predictionCountBeforeTrigger.current) {
+    if (!awaitingForecast || !model) return;
+
+    const gotNewPredictions = model.predictions.length > predictionCountBeforeTrigger.current;
+    const forecastEnded =
+      model.forecastStatus === ForecastStatus.Failed || model.forecastStatus === ForecastStatus.Cancelled;
+
+    if (gotNewPredictions || forecastEnded) {
       setAwaitingForecast(false);
     }
   }, [model, awaitingForecast]);
@@ -75,6 +86,11 @@ const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
 
   if (isLoading) return <Card>Model detayı yükleniyor...</Card>;
   if (error || !model) return <div className={styles.error}>{error || 'Model bulunamadı.'}</div>;
+
+  const isForecastInProgress =
+    awaitingForecast ||
+    model.forecastStatus === ForecastStatus.Queued ||
+    model.forecastStatus === ForecastStatus.Generating;
 
   return (
     <Card>
@@ -105,7 +121,12 @@ const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
       )}
 
       <div className={styles.chartSection}>
-        <ForecastChart predictions={model.predictions} />
+        <ForecastChart
+          predictions={model.predictions}
+          forecastStatus={model.forecastStatus}
+          forecastProgressPercentage={model.forecastProgressPercentage}
+          forecastErrorMessage={model.forecastErrorMessage}
+        />
       </div>
 
       {model.status === ModelStatus.Completed && (
@@ -122,10 +143,10 @@ const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
               max={365}
               value={horizon}
               onChange={(e) => setHorizon(Number(e.target.value))}
-              disabled={isTriggering || awaitingForecast}
+              disabled={isTriggering || isForecastInProgress}
             />
-            <Button type="submit" disabled={isTriggering || awaitingForecast} style={{ width: 'auto' }}>
-              {awaitingForecast ? 'Oluşturuluyor...' : 'Tahmin Oluştur'}
+            <Button type="submit" disabled={isTriggering || isForecastInProgress} style={{ width: 'auto' }}>
+              {isForecastInProgress ? 'Oluşturuluyor...' : 'Tahmin Oluştur'}
             </Button>
           </div>
         </form>

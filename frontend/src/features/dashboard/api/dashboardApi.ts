@@ -5,6 +5,7 @@ export const DashboardActivityStatus = {
   Processing: 1,
   Completed: 2,
   Failed: 3,
+  Cancelled: 4,
 } as const;
 export type DashboardActivityStatus = (typeof DashboardActivityStatus)[keyof typeof DashboardActivityStatus];
 

@@ -2,13 +2,14 @@ import React from 'react';
 import { ModelStatus } from '../../features/models/api/modelApi';
 import styles from './StatusBadge.module.css';
 
-type BadgeTone = 'queued' | 'training' | 'completed' | 'failed';
+type BadgeTone = 'queued' | 'training' | 'completed' | 'failed' | 'cancelled';
 
 const MODEL_STATUS_MAP: Record<ModelStatus, { label: string; tone: BadgeTone }> = {
   [ModelStatus.Queued]: { label: 'Kuyrukta', tone: 'queued' },
   [ModelStatus.Training]: { label: 'Eğitiliyor', tone: 'training' },
   [ModelStatus.Completed]: { label: 'Tamamlandı', tone: 'completed' },
   [ModelStatus.Failed]: { label: 'Başarısız', tone: 'failed' },
+  [ModelStatus.Cancelled]: { label: 'İptal Edildi', tone: 'cancelled' },
 };
 
 interface StatusBadgeProps {

@@ -5,5 +5,6 @@ public enum DashboardActivityStatus
     Queued,
     Processing,
     Completed,
-    Failed
+    Failed,
+    Cancelled
 }
