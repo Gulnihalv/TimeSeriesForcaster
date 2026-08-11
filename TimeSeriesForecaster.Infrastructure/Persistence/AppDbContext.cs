@@ -26,5 +26,8 @@ public class AppDbContext : IdentityDbContext<AppUser, IdentityRole<int>, int>
         modelBuilder.Entity<DashboardDismissal>()
             .HasIndex(d => new { d.UserId, d.EntityType, d.EntityId })
             .IsUnique();
+
+        modelBuilder.Entity<DataPoint>()
+            .HasIndex(dp => new { dp.DatasetId, dp.Timestamp });
     }
 }
