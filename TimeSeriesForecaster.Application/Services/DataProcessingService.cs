@@ -30,6 +30,79 @@ public class DataProcessingService : IDataProcessingService
         _env = env;
         _logger = logger;
     }
+
+    private record ImportResult(int ImportedRows, int SkippedRows, DateTime? MinDate, DateTime? MaxDate);
+
+    private async Task<ImportResult> ImportDataPointsAsync(Dataset dataset, string filePath,int chunkSize, int totalRows, CancellationToken cancellationToken)
+    {
+        var dataPoints = new List<DataPoint>();
+        DateTime? minDate = null;
+        DateTime? maxDate = null;
+        int skippedRows = 0;
+        int processedRows = 0;
+        int lastSavedProgress = 0;
+
+        using (var reader = new StreamReader(filePath))
+        using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+        {
+            csv.Read();
+            csv.ReadHeader();
+
+            string dateColumn = dataset.DateColumn!;
+            string targetColumn = dataset.TargetColumn!;
+
+            while (csv.Read())
+            {
+                try
+                {
+                    var rawTimeStamp = csv.GetField<DateTime>(dateColumn);
+                    var timeStamp = DateTime.SpecifyKind(rawTimeStamp, DateTimeKind.Utc);
+                    var value = csv.GetField<decimal>(targetColumn);
+
+                    if (minDate == null || timeStamp < minDate) minDate = timeStamp;
+                    if (maxDate == null || timeStamp > maxDate) maxDate = timeStamp;
+
+                    var newDataPoint = new DataPoint
+                    {
+                        DatasetId = dataset.Id,
+                        Timestamp = timeStamp,
+                        Value = value,
+                        IsOutlier = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    dataPoints.Add(newDataPoint);
+                    processedRows++;
+                    
+                    if (dataPoints.Count == chunkSize)
+                    {
+                        await _dataPointRepository.BulkCopyDataPointsAsync(dataPoints, cancellationToken);
+                        dataPoints.Clear();
+                    }
+
+                    int currentProgress = totalRows > 0 ? (int)((double)processedRows / totalRows * 100) : 0;
+                    if (currentProgress >= lastSavedProgress + 5)
+                    {
+                        dataset.ProgressPercentage = currentProgress;
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                        lastSavedProgress = currentProgress;
+                    }
+                }
+                catch (Exception)
+                {
+                    skippedRows++;
+                }
+            }
+        }
+
+        if (dataPoints.Count > 0)
+        {
+            await _dataPointRepository.BulkCopyDataPointsAsync(dataPoints, cancellationToken);
+            dataPoints.Clear();
+        }
+
+        return new ImportResult(processedRows, skippedRows, minDate, maxDate);
+    }
     
     public async Task<Result> ProcessDatasetAsync(int datasetId, CancellationToken cancellationToken = default)
     {
@@ -47,78 +120,24 @@ public class DataProcessingService : IDataProcessingService
             {
                 dataset.Status = ProcessingStatus.Processing;
                 dataset.ProgressPercentage = 0;
+                dataset.RecordCount = 0;
+                dataset.StartDate = null;
+                dataset.EndDate = null;
+                dataset.SkippedRowCount = null;
+                dataset.ErrorMessage = null;
+                await _dataPointRepository.RemoveDataPointsForDatasetAsync(datasetId, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                // Yüzdelik ilerlemeyi hesaplayabilmek için toplam satır sayısını
-                // önceden (header hariç) sayıyoruz.
                 var totalRows = File.ReadLines(filePath).Count() - 1;
+                var chunkSize = 10000;
+                var importResult = await ImportDataPointsAsync(dataset, filePath, chunkSize, totalRows,cancellationToken);
 
-                var dataPoints = new List<DataPoint>();
-                DateTime minDate = DateTime.MaxValue;
-                DateTime maxDate = DateTime.MinValue;
-                var processedRows = 0;
-                var failedRows = 0;
-                var lastPersistedThreshold = 0;
-
-                using (var reader = new StreamReader(filePath))
-                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                if (importResult.SkippedRows > 0)
                 {
-                    csv.Read();
-                    csv.ReadHeader();
-
-                    string dateColumn = dataset.DateColumn!;
-                    string targetColumn = dataset.TargetColumn!;
-
-                    while (csv.Read())
-                    {
-                        try
-                        {
-                            var rawTimeStamp = csv.GetField<DateTime>(dateColumn);
-                            var timeStamp = DateTime.SpecifyKind(rawTimeStamp, DateTimeKind.Utc);
-                            var value = csv.GetField<decimal>(targetColumn);
-
-                            if (timeStamp < minDate) minDate = timeStamp;
-                            if (timeStamp > maxDate) maxDate = timeStamp;
-
-                            var newDataPoint = new DataPoint
-                            {
-                                DatasetId = dataset.Id,
-                                Timestamp = timeStamp,
-                                Value = value,
-                                IsOutlier = false,
-                                CreatedAt = DateTime.UtcNow
-                            };
-
-                            dataPoints.Add(newDataPoint);
-                        }
-                        catch (Exception)
-                        {
-                            failedRows++;
-                        }
-                        finally
-                        {
-                            processedRows++;
-                            if (totalRows > 0)
-                            {
-                                var pct = (int)(processedRows / (double)totalRows * 100);
-                                var threshold = pct / 10 * 10;
-                                if (threshold > lastPersistedThreshold)
-                                {
-                                    lastPersistedThreshold = threshold;
-                                    dataset.ProgressPercentage = threshold;
-                                    await _unitOfWork.SaveChangesAsync(cancellationToken);
-                                }
-                            }
-                        }
-                    }
+                    _logger.LogWarning("{FailedRows} / {TotalRows} satır okunamadı.", importResult.SkippedRows, totalRows);
                 }
 
-                if (failedRows > 0)
-                {
-                    _logger.LogWarning("{FailedRows} / {TotalRows} satır okunamadı.", failedRows, processedRows);
-                }
-
-                if (!dataPoints.Any())
+                if (!importResult.MinDate.HasValue || !importResult.MaxDate.HasValue)
                 {
                     dataset.IsProcessed = false;
                     dataset.Status = ProcessingStatus.Failed;
@@ -134,15 +153,13 @@ public class DataProcessingService : IDataProcessingService
                     return Result.Failure(ResultErrorType.BadRequest, dataset.ErrorMessage);
                 }
 
-                await _dataPointRepository.CreateDataPointsBulkAsync(dataPoints);
-
                 dataset.IsProcessed = true;
                 dataset.Status = ProcessingStatus.Completed;
                 dataset.ProgressPercentage = 100;
-                dataset.RecordCount = dataPoints.Count;
-                dataset.StartDate = minDate;
-                dataset.EndDate = maxDate;
-                dataset.SkippedRowCount = failedRows > 0 ? failedRows : null;
+                dataset.RecordCount = importResult.ImportedRows;
+                dataset.StartDate = importResult.MinDate;
+                dataset.EndDate = importResult.MaxDate;
+                dataset.SkippedRowCount = importResult.SkippedRows > 0 ? importResult.SkippedRows : null;
                 dataset.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);

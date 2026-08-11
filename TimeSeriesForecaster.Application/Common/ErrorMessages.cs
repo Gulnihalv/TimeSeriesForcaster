@@ -17,4 +17,5 @@ public static class ErrorMessages
     public const string InvalidEntityType = "Geçersiz varlık türü.";
     public const string ModelTrainingAPIError = "Model eğitimi sırasında Python API'ında bir hata oluştu.";
     public const string InvalidModelPathResponse = "Python API'ından geçerli bir model yolu dönmedi.";
+    public const string DatasetNotProcessed = "Dataset henüz işlenmedi.";
 }

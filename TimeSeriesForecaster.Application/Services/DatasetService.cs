@@ -221,6 +221,10 @@ public class DatasetService : IDatasetService
         {
             return Result.Failure<IEnumerable<DataPointDto>?>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
+        if (!await _datasetRepository.IsDatasetProcessedAsync(id: datasetId))
+        {
+            return Result.Failure<IEnumerable<DataPointDto>?>(ResultErrorType.BadRequest, ErrorMessages.DatasetNotProcessed);
+        }
 
         // Not: dataset'ler tipik bir portfolyo/demo boyutunda (yüzlerce-birkaç bin satır) olacağından
         // şimdilik sayfalama yapmıyoruz. Çok büyük dataset'ler için ileride limit/pagination eklenebilir.

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using NpgsqlTypes;
 using TimeSeriesForecaster.Application.Contracts.Persistence;
 using TimeSeriesForecaster.Domain.Entities;
 using TimeSeriesForecaster.Infrastructure.Persistence;
@@ -16,13 +18,8 @@ public class DataPointRepository : IDataPointRepository
 
     // Bu metotlar sadece context'e ekleme/çıkarma/güncelleme yapıyor asıl işlemler serviste olacak.
     public void CreateDataPoint(DataPoint dataPoint) => _context.DataPoints.Add(dataPoint);
-    public async Task CreateDataPointsBulkAsync(IEnumerable<DataPoint> dataPoints) => await _context.DataPoints.AddRangeAsync(dataPoints);
     public void RemoveDataPoint(DataPoint dataPoint)  => _context.DataPoints.Remove(dataPoint);
     public void UpdateDataPoint(DataPoint dataPoint) => _context.DataPoints.Update(dataPoint);
-    public async Task RemoveDatapointsForDatasetAsync(int datasetId) => 
-        await _context.DataPoints
-            .Where(d => d.DatasetId == datasetId)
-            .ExecuteDeleteAsync();
 
     public async Task<DataPoint?> GetDataPointByIdAsync(int id, bool trackChanges)
     {
@@ -106,5 +103,44 @@ public class DataPointRepository : IDataPointRepository
             .FirstOrDefaultAsync();
 
         return result != null ? (result.MinValue, result.MaxValue) : (default, default);
+    }
+
+    public async Task RemoveDataPointsForDatasetAsync(int datasetId, CancellationToken cancellationToken = default)
+    {
+        await _context.DataPoints
+            .Where(d => d.DatasetId == datasetId)
+            .ExecuteDeleteAsync(cancellationToken);
+    }
+
+    public async Task BulkCopyDataPointsAsync(IEnumerable<DataPoint> dataPoints, CancellationToken cancellationToken = default)
+    {
+        var conn = (NpgsqlConnection)_context.Database.GetDbConnection();
+        var wasClosed = conn.State != System.Data.ConnectionState.Open;
+
+        if (wasClosed)
+        {
+            await conn.OpenAsync(cancellationToken);
+        }
+
+        try
+        {
+            await using var writer = await conn.BeginBinaryImportAsync("COPY \"DataPoints\" (\"DatasetId\", \"Timestamp\", \"Value\", \"IsOutlier\", \"CreatedAt\") FROM STDIN (FORMAT BINARY)", cancellationToken);
+            
+            foreach (var dataPoint in dataPoints)
+            {
+                await writer.StartRowAsync(cancellationToken);
+                await writer.WriteAsync(dataPoint.DatasetId, NpgsqlDbType.Integer);
+                await writer.WriteAsync(dataPoint.Timestamp, NpgsqlDbType.TimestampTz);
+                await writer.WriteAsync(dataPoint.Value, NpgsqlDbType.Numeric);
+                await writer.WriteAsync(dataPoint.IsOutlier, NpgsqlDbType.Boolean);
+                await writer.WriteAsync(dataPoint.CreatedAt, NpgsqlDbType.TimestampTz);
+            }
+            await writer.CompleteAsync(cancellationToken);
+        }
+        finally
+        {
+            if (wasClosed)
+                await conn.CloseAsync();
+        }
     }
 }
