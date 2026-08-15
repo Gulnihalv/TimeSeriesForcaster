@@ -214,7 +214,7 @@ public class DatasetService : IDatasetService
         return Result.Success(true);
     }
 
-    public async Task<Result<IEnumerable<DataPointDto>?>> GetDataPointsForDatasetAsync(int datasetId, int userId)
+    public async Task<Result<IEnumerable<DataPointDto>?>> GetDataPointsForDatasetAsync(int datasetId, int userId, int? maxPoints = null)
     {
         var userOwnsDataset = await _datasetRepository.UserOwnsDatasetAsync(datasetId: datasetId, userId: userId);
         if (!userOwnsDataset)
@@ -226,11 +226,26 @@ public class DatasetService : IDatasetService
             return Result.Failure<IEnumerable<DataPointDto>?>(ResultErrorType.BadRequest, ErrorMessages.DatasetNotProcessed);
         }
 
-        // Not: dataset'ler tipik bir portfolyo/demo boyutunda (yüzlerce-birkaç bin satır) olacağından
-        // şimdilik sayfalama yapmıyoruz. Çok büyük dataset'ler için ileride limit/pagination eklenebilir.
-        var dataPoints = await _dataPointRepository.GetDataPointsAsync(datasetId: datasetId);
+        var dataPoints = await _dataPointRepository.GetDataPointsAsync(datasetId: datasetId, maxPoints: maxPoints);
         var ordered = dataPoints.OrderBy(dp => dp.Timestamp);
 
         return Result.Success<IEnumerable<DataPointDto>?>(_mapper.Map<IEnumerable<DataPointDto>>(ordered));
+    }
+
+    public async Task<Result<DatasetStatisticsDto?>> GetDatasetStatisticsAsync(int datasetId, int userId)
+    {
+        var userOwnsDataset = await _datasetRepository.UserOwnsDatasetAsync(datasetId: datasetId, userId: userId);
+        if (!userOwnsDataset)
+        {
+            return Result.Failure<DatasetStatisticsDto?>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
+        }
+        if (!await _datasetRepository.IsDatasetProcessedAsync(id: datasetId))
+        {
+            return Result.Failure<DatasetStatisticsDto?>(ResultErrorType.BadRequest, ErrorMessages.DatasetNotProcessed);
+        }
+
+        var statistics = await _dataPointRepository.GetStatisticsAsync(datasetId: datasetId);
+        var statisticsDto = _mapper.Map<DatasetStatisticsDto>(statistics);
+        return Result.Success<DatasetStatisticsDto?>(statisticsDto);
     }
 }

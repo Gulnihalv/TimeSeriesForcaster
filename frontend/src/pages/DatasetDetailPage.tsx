@@ -8,9 +8,7 @@ import ModelList from '../features/models/components/ModelList';
 import ModelDetailPanel from '../features/models/components/ModelDetailPanel';
 import ModelComparisonView from '../features/models/components/ModelComparisonView';
 import EmptyState from '../components/EmptyState/EmptyState';
-import Spinner from '../components/Spinner/Spinner';
-import { useApiData } from '../hooks/useApiData';
-import { getDataPointsForDataset, type Dataset, type DataPoint } from '../features/datasets/api/datasetApi';
+import type { Dataset } from '../features/datasets/api/datasetApi';
 import { LuChartSpline } from 'react-icons/lu';
 import styles from './DatasetDetailPage.module.css';
 
@@ -30,15 +28,6 @@ const DatasetDetailPage = () => {
   const handleDatasetLoaded = useCallback((loaded: Dataset) => {
     setDataset(loaded);
   }, []);
-
-  // Dataset işlendikten sonra ham veri noktalarını TEK SEFERDE çekip hem
-  // DatasetSummary (istatistikler) hem DatasetChart (grafik) ile paylaşıyoruz -
-  // ikisi de kendi ayrı fetch'ini yapmıyor.
-  const { data: dataPoints, isLoading: pointsLoading, error: pointsError } = useApiData<DataPoint[]>(
-    () => (dataset?.isProcessed ? getDataPointsForDataset(id) : Promise.resolve([])),
-    [id, dataset?.isProcessed],
-    { fallbackErrorMessage: 'Veri noktaları yüklenemedi.' }
-  );
 
   const handleModelCreated = () => {
     setModelListKey((prev) => prev + 1);
@@ -73,8 +62,6 @@ const DatasetDetailPage = () => {
           <DatasetSummary
             datasetId={id}
             onLoaded={handleDatasetLoaded}
-            dataPoints={dataPoints}
-            dataPointsLoading={pointsLoading}
           />
 
           <div className={styles.heroChartArea}>
@@ -84,12 +71,8 @@ const DatasetDetailPage = () => {
                   ? 'Dataset işlenirken hata oluştu, grafik gösterilemiyor.'
                   : 'Dataset işlendikten sonra grafik burada görünecek.'}
               </p>
-            ) : pointsLoading ? (
-              <Spinner label="Veriler yükleniyor..." />
-            ) : pointsError ? (
-              <p className={styles.chartPlaceholder}>{pointsError}</p>
             ) : (
-              <DatasetChart dataPoints={dataPoints ?? []} />
+              <DatasetChart datasetId={id} />
             )}
           </div>
         </div>

@@ -8,11 +8,13 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import type { DataPoint } from '../api/datasetApi';
+import { getDataPointsForDataset, type DataPoint } from '../api/datasetApi';
 import styles from './DatasetChart.module.css';
+import { useApiData } from '../../../hooks/useApiData';
+import Spinner from '../../../components/Spinner/Spinner';
 
 interface DatasetChartProps {
-  dataPoints: DataPoint[];
+  datasetId: number;
 }
 
 interface ChartPoint {
@@ -34,7 +36,22 @@ const OutlierDot = ({ cx, cy, payload }: OutlierDotProps) => {
   return <circle cx={cx} cy={cy} r={4} fill="var(--color-danger-text)" stroke="#fff" strokeWidth={1} />;
 };
 
-const DatasetChart: FC<DatasetChartProps> = ({ dataPoints }) => {
+const DatasetChart: FC<DatasetChartProps> = ({datasetId}) => {
+
+  const { data: dataPoints, isLoading: pointsLoading, error: pointsError } = useApiData<DataPoint[]>(
+    () => getDataPointsForDataset(datasetId),
+    [datasetId],
+    { fallbackErrorMessage: 'Veri noktaları yüklenemedi.' }
+  );
+
+  if (pointsLoading) {
+    return <Spinner label="Veriler yükleniyor..." />;
+  }
+
+  if (pointsError) {
+    return <p className={styles.empty}>{pointsError}</p>;
+  }
+
   if (!dataPoints || dataPoints.length === 0) {
     return <p className={styles.empty}>Görüntülenecek veri yok.</p>;
   }

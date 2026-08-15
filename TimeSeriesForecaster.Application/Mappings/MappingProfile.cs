@@ -1,5 +1,6 @@
 using AutoMapper;
 using TimeSeriesForecaster.Application.DTOs;
+using TimeSeriesForecaster.Application.Models;
 using TimeSeriesForecaster.Domain.Entities;
 
 namespace TimeSeriesForecaster.Application.Mappings;
@@ -18,5 +19,6 @@ public class MappingProfile : Profile
         CreateMap<Model, ModelDetailDto>()
             .ForMember(dest => dest.Metrics, opt => opt.MapFrom(src => src.ModelMetrics));
         CreateMap<Notification, NotificationDto>();
+        CreateMap<DatasetStatistics, DatasetStatisticsDto>();
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using NpgsqlTypes;
 using TimeSeriesForecaster.Application.Contracts.Persistence;
+using TimeSeriesForecaster.Application.Models;
 using TimeSeriesForecaster.Domain.Entities;
 using TimeSeriesForecaster.Infrastructure.Persistence;
 
@@ -30,7 +31,7 @@ public class DataPointRepository : IDataPointRepository
         return await query.FirstOrDefaultAsync(d => d.Id == id);
     }
 
-    public async Task<IEnumerable<DataPoint>> GetDataPointsAsync(int datasetId, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+    public async Task<IEnumerable<DataPoint>> GetDataPointsAsync(int datasetId, DateTime? startDate = null, DateTime? endDate = null, int? limit = null, int? maxPoints = null)
     {
         var query = _context.DataPoints
             .AsNoTracking()
@@ -48,12 +49,50 @@ public class DataPointRepository : IDataPointRepository
 
         query = query.OrderBy(d => d.Timestamp);
 
+        if (maxPoints is > 0)
+        {
+            var totalCount = await query.CountAsync();
+            if (totalCount > maxPoints.Value)
+            {
+                return await GetDownsampledDataPointsAsync(datasetId, maxPoints.Value);
+            }
+        }
+
         if (limit.HasValue)
         {
             query = query.Take(limit.Value);
         }
 
         return await query.ToListAsync();
+    }
+
+    // Büyük dataset'lerde grafik için tüm noktaları göndermek yerine, veriyi zaman sırasına göre
+    // @maxPoints kovaya bölüp her kovadan min ve max değerli gerçek noktayı döndürür (şekli AVG'den daha iyi korur,
+    // ani sıçramalar kaybolmaz). Bir kovada outlier varsa, kovadan seçilen noktalar da outlier olarak işaretlenir.
+    private async Task<IEnumerable<DataPoint>> GetDownsampledDataPointsAsync(int datasetId, int maxPoints, CancellationToken cancellationToken = default)
+    {
+        return await _context.DataPoints
+            .FromSql($"""
+                WITH bucketed AS (
+                    SELECT "Id", "DatasetId", "Timestamp", "Value", "IsOutlier", "CreatedAt",
+                           NTILE({maxPoints}) OVER (ORDER BY "Timestamp") AS bucket
+                    FROM "DataPoints"
+                    WHERE "DatasetId" = {datasetId}
+                ),
+                ranked AS (
+                    SELECT *,
+                           ROW_NUMBER() OVER (PARTITION BY bucket ORDER BY "Value" ASC, "Timestamp" ASC) AS min_rank,
+                           ROW_NUMBER() OVER (PARTITION BY bucket ORDER BY "Value" DESC, "Timestamp" ASC) AS max_rank,
+                           BOOL_OR("IsOutlier") OVER (PARTITION BY bucket) AS bucket_has_outlier
+                    FROM bucketed
+                )
+                SELECT "Id", "DatasetId", "Timestamp", "Value", bucket_has_outlier AS "IsOutlier", "CreatedAt"
+                FROM ranked
+                WHERE min_rank = 1 OR max_rank = 1
+                ORDER BY "Timestamp"
+                """)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
     }
     public async Task<IEnumerable<DataPoint>> GetDataPointsPagedAsync(int datasetId, int page, int pageSize)
     {
@@ -74,36 +113,6 @@ public class DataPointRepository : IDataPointRepository
             .ToListAsync();
     }
     public Task<int> GetDataPointsCountAsync(int datasetId) => _context.DataPoints.CountAsync(d => d.DatasetId == datasetId);
-    public async Task<(DateTime minDate, DateTime maxDate)> GetDateRangeAsync(int datasetId)
-    {
-        var result = await _context.DataPoints
-            .AsNoTracking()
-            .Where(d => d.DatasetId == datasetId)
-            .GroupBy(d => d.DatasetId)
-            .Select(g => new
-            {
-                MinDate = g.Min(d => d.Timestamp),
-                MaxDate = g.Max(d => d.Timestamp)
-            })
-            .FirstOrDefaultAsync();
-
-        return result != null ? (result.MinDate, result.MaxDate) : (default, default);
-    }
-    public async Task<(decimal minValue, decimal maxValue)> GetValueRangeAsync(int datasetId)
-    {
-        var result = await _context.DataPoints
-            .AsNoTracking()
-            .Where(d => d.DatasetId == datasetId)
-            .GroupBy(d => d.DatasetId)
-            .Select(g => new
-            {
-                MinValue = g.Min(d => d.Value),
-                MaxValue = g.Max(d => d.Value)
-            })
-            .FirstOrDefaultAsync();
-
-        return result != null ? (result.MinValue, result.MaxValue) : (default, default);
-    }
 
     public async Task RemoveDataPointsForDatasetAsync(int datasetId, CancellationToken cancellationToken = default)
     {
@@ -142,5 +151,45 @@ public class DataPointRepository : IDataPointRepository
             if (wasClosed)
                 await conn.CloseAsync();
         }
+    }
+
+    public async Task<DatasetStatistics> GetStatisticsAsync(int datasetId, CancellationToken cancellationToken = default)
+    {
+        var result = await _context.Database
+            .SqlQuery<DatasetStatistics>($"""
+                SELECT
+                    AVG("Value") AS "Mean",
+                    (PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY "Value"))::numeric AS "Median",
+                    (STDDEV_POP("Value"))::numeric AS "StdDev",
+                    MIN("Value") AS "Min",
+                    MAX("Value") AS "Max",
+                    MIN("Timestamp") AS "MinDate",
+                    MAX("Timestamp") AS "MaxDate",
+                    NULL::numeric AS "CoefficientOfVariation"
+                FROM "DataPoints"
+                WHERE "DatasetId" = {datasetId}
+                """)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (result?.MinDate is null || result.MaxDate is null)
+        {
+            return new DatasetStatistics();
+        }
+
+        var mean = result.Mean ?? 0m;
+        var stdDev = result.StdDev ?? 0m;
+        var coefficientOfVariation = mean != 0 ? stdDev / mean : 0m;
+
+        return new DatasetStatistics
+        {
+            Mean = (int?)mean,
+            Median = (int?)(result.Median ?? 0m),
+            StdDev = stdDev,
+            Min = result.Min ?? 0m,
+            Max = result.Max ?? 0m,
+            MinDate = result.MinDate,
+            MaxDate = result.MaxDate,
+            CoefficientOfVariation = coefficientOfVariation
+        };
     }
 }

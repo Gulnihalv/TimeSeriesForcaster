@@ -10,5 +10,6 @@ public interface IDatasetService
     Task<Result<DatasetDto?>> GetDatasetByIdAsync(int datasetId, int userId);
     Task<Result<DatasetDto?>> CreateDatasetFromUploadAsync(int projectId, int userId, string name, IFormFile file, string dateColumnName, string targetColumnName);
     Task<Result<bool>> DeleteDatasetAsync(int datasetId, int userId);
-    Task<Result<IEnumerable<DataPointDto>?>> GetDataPointsForDatasetAsync(int datasetId, int userId);
+    Task<Result<IEnumerable<DataPointDto>?>> GetDataPointsForDatasetAsync(int datasetId, int userId, int? maxPoints = null);
+    Task<Result<DatasetStatisticsDto?>> GetDatasetStatisticsAsync(int datasetId, int userId);
 }

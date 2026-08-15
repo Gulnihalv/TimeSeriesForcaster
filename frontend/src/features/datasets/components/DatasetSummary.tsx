@@ -2,8 +2,8 @@ import { useEffect, type FC } from 'react';
 import Spinner from '../../../components/Spinner/Spinner';
 import { ProcessingBadge } from '../../../components/StatusBadge/StatusBadge';
 import { useApiData } from '../../../hooks/useApiData';
-import { getDatasetById, type Dataset, type DataPoint } from '../api/datasetApi';
-import { calculateStatistics, describeVariability } from '../utils/dataStatistics';
+import { getDatasetById, getDatasetStatistics, type Dataset, type DatasetStatistics } from '../api/datasetApi';
+import { describeVariability } from '../utils/dataStatistics';
 import {
   LuFileText,
   LuCalendarRange,
@@ -21,9 +21,6 @@ interface DatasetSummaryProps {
   datasetId: number;
   /** Dataset yüklendikten sonra parent'a (örn. ModelTrainingForm'un disable durumu için) haber verir */
   onLoaded?: (dataset: Dataset) => void;
-  /** Ham veri noktaları - istatistik hesaplamak için DatasetDetailPage'den geliyor (tekrar fetch etmiyoruz) */
-  dataPoints?: DataPoint[] | null;
-  dataPointsLoading?: boolean;
 }
 
 const formatDate = (value: string | null) =>
@@ -38,8 +35,8 @@ const formatMonthYear = (value: string | null) => {
 const formatNumber = (value: number) =>
   value.toLocaleString('tr-TR', { maximumFractionDigits: 2 });
 
-const DatasetSummary: FC<DatasetSummaryProps> = ({ datasetId, onLoaded, dataPoints, dataPointsLoading }) => {
-  const { data: dataset, isLoading, error } = useApiData<Dataset>(
+const DatasetSummary: FC<DatasetSummaryProps> = ({ datasetId, onLoaded}) => {
+  const { data: dataset, error } = useApiData<Dataset>(
     () => getDatasetById(datasetId),
     [datasetId],
     {
@@ -48,14 +45,21 @@ const DatasetSummary: FC<DatasetSummaryProps> = ({ datasetId, onLoaded, dataPoin
     }
   );
 
+  const { data: statistics, isLoading: statisticsLoading } = useApiData<DatasetStatistics | null>(
+    () => (dataset?.isProcessed ? getDatasetStatistics(datasetId) : Promise.resolve(null)),
+    [datasetId, dataset?.isProcessed],
+    {
+      fallbackErrorMessage: 'İstatistikler yüklenemedi.',
+    }
+  );
+  
+
   useEffect(() => {
     if (dataset && onLoaded) onLoaded(dataset);
   }, [dataset, onLoaded]);
 
-  if (isLoading) return <p className={styles.loading}>Dataset bilgisi yükleniyor...</p>;
+  if (statisticsLoading) return <p className={styles.loading}>İstatistikler hesaplanıyor...</p>;
   if (error || !dataset) return <div className={styles.error}>{error || 'Dataset bulunamadı.'}</div>;
-
-  const statistics = dataPoints ? calculateStatistics(dataPoints) : null;
 
   return (
     <>
@@ -101,7 +105,7 @@ const DatasetSummary: FC<DatasetSummaryProps> = ({ datasetId, onLoaded, dataPoin
 
       {dataset.isProcessed && !dataset.errorMessage && (
         <div className={styles.statisticsSection}>
-          {dataPointsLoading ? (
+          {statisticsLoading ? (
             <Spinner label="İstatistikler hesaplanıyor..." />
           ) : statistics ? (
             <div className={styles.statGrid}>

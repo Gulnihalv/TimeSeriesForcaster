@@ -73,7 +73,7 @@ public class DatasetsController : ApiControllerBase
     }
 
     [HttpGet("{id}/datapoints")]
-    public async Task<IActionResult> GetDataPoints(int id)
+    public async Task<IActionResult> GetDataPoints(int id, [FromQuery] int maxPoints = 2000)
     {
         var userId = User.GetUserId();
         if (userId == null)
@@ -81,7 +81,20 @@ public class DatasetsController : ApiControllerBase
             return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var result = await _datasetService.GetDataPointsForDatasetAsync(id, userId.Value);
+        var result = await _datasetService.GetDataPointsForDatasetAsync(id, userId.Value, maxPoints);
+        return ToActionResult(result, value => Ok(value));
+    }
+
+    [HttpGet("{id}/statistics")]
+    public async Task<IActionResult> GetStatistics(int id)
+    {
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
+        }
+
+        var result = await _datasetService.GetDatasetStatisticsAsync(id, userId.Value);
         return ToActionResult(result, value => Ok(value));
     }
 }

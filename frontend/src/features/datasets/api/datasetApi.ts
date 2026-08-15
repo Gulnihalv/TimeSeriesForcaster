@@ -24,6 +24,17 @@ export interface DataPoint {
   isOutlier: boolean;
 }
 
+export interface DatasetStatistics {
+  mean: number;
+  median: number;
+  stdDev: number;
+  min: number;
+  max: number;
+  minDate: string;
+  maxDate: string;
+  coefficientOfVariation: number | null; // ortalama 0 ise bölme hatası olmasın diye null
+}
+
 export const getDatasetsForProject = async (projectId: number): Promise<Dataset[]> => {
   const response = await apiClient.get<Dataset[]>(`/projects/${projectId}/datasets`);
   return response.data;
@@ -67,5 +78,10 @@ export const deleteDataset = async (datasetId: number): Promise<void> => {
 
 export const getDataPointsForDataset = async (datasetId: number): Promise<DataPoint[]> => {
   const response = await apiClient.get<DataPoint[]>(`/datasets/${datasetId}/datapoints`);
+  return response.data;
+};
+
+export const getDatasetStatistics = async (datasetId: number): Promise<DatasetStatistics> => {
+  const response = await apiClient.get<DatasetStatistics>(`/datasets/${datasetId}/statistics`);
   return response.data;
 };
