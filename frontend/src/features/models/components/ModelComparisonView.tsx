@@ -10,7 +10,15 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { useApiData } from '../../../hooks/useApiData';
-import { getModelById, MetricName, ModelStatus, type ModelDetail } from '../api/modelApi';
+import {
+  getModelById,
+  MetricName,
+  ModelStatus,
+  AggregationFunction,
+  RESOLUTION_LABELS,
+  AGGREGATION_LABELS,
+  type ModelDetail,
+} from '../api/modelApi';
 import { LuX } from 'react-icons/lu';
 import styles from './ModelComparisonView.module.css';
 
@@ -151,6 +159,38 @@ const ModelComparisonView: FC<ModelComparisonViewProps> = ({ modelIds, onRemoveM
             </tr>
           </thead>
           <tbody>
+            {(() => {
+              const resolutionValues = models.map((m) =>
+                m.trainingResolution != null ? RESOLUTION_LABELS[m.trainingResolution] : RESOLUTION_LABELS[0]
+              );
+              const allResolutionsSame = resolutionValues.every((v) => v === resolutionValues[0]);
+              const aggregationValues = models.map((m) =>
+                m.trainingAggregation != null && m.trainingAggregation !== AggregationFunction.None
+                  ? AGGREGATION_LABELS[m.trainingAggregation]
+                  : '—'
+              );
+              const allAggregationsSame = aggregationValues.every((v) => v === aggregationValues[0]);
+              return (
+                <>
+                  <tr>
+                    <td>Çözünürlük</td>
+                    {resolutionValues.map((v, i) => (
+                      <td key={models[i].id} className={!allResolutionsSame ? styles.diffCell : ''}>
+                        {v}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td>Agregasyon</td>
+                    {aggregationValues.map((v, i) => (
+                      <td key={models[i].id} className={!allAggregationsSame ? styles.diffCell : ''}>
+                        {v}
+                      </td>
+                    ))}
+                  </tr>
+                </>
+              );
+            })()}
             {HYPERPARAM_ROWS.map((row) => {
               const values = hyperparametersByModel.map((h) => h[row.key]);
               const allSame = values.every((v) => v === values[0]);

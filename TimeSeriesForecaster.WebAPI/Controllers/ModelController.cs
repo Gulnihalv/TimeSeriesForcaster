@@ -28,7 +28,7 @@ public class ModelController : ApiControllerBase
             return Unauthorized(ErrorMessages.UnauthorizedAccess);
         }
 
-        var result = await _modelService.TrainModelAsync(datasetId, userId.Value, request.Algorithm, request.Hyperparameters);
+        var result = await _modelService.TrainModelAsync(datasetId, userId.Value, request.Algorithm, request.Hyperparameters, request.TrainingResolution, request.TrainingAggregation);
         return ToActionResult(result, value => CreatedAtAction(nameof(GetModelById), new { id = value!.Id }, value));
     }
 
@@ -95,5 +95,18 @@ public class ModelController : ApiControllerBase
 
         var result = await _modelService.GetModelComponentsAsync(id, userId.Value, CancellationToken.None);
         return ToActionResult(result);
+    }
+
+    [HttpGet("/api/datasets/{datasetId}/resolution-options")]
+    public async Task<IActionResult> GetResolutionOptions(int datasetId)
+    {
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized(ErrorMessages.UnauthorizedAccess);
+        }
+
+        var result = await _modelService.GetResolutionOptionsAsync(datasetId, userId.Value, CancellationToken.None);
+        return ToActionResult(result, value => Ok(value));
     }
 }

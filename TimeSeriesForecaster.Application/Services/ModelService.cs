@@ -62,7 +62,7 @@ public class ModelService : IModelService
         return Result.Success<ModelDto?>(modelDto);
     }
 
-    public async Task<Result<ModelDto?>> TrainModelAsync(int datasetId, int userId, string algorithm, ProphetHyperparametersDto? hyperparameters = null)
+    public async Task<Result<ModelDto?>> TrainModelAsync(int datasetId, int userId, string algorithm, ProphetHyperparametersDto? hyperparameters = null, TimeResolution? timeResolution = null, AggregationFunction? aggregationFunction = null)
     {
         var userOwnsDataset = await _datasetRepository.UserOwnsDatasetAsync(datasetId: datasetId, userId: userId);
         if (!userOwnsDataset)
@@ -71,6 +71,15 @@ public class ModelService : IModelService
         }
 
         var dataset = await _datasetRepository.GetDatasetByIdAsync(id: datasetId, trackChanges: false);
+
+        if (timeResolution.HasValue)
+        {
+            var optionsResult = await GetResolutionOptionsAsync(datasetId, userId);
+            var selected = optionsResult.Value?.FirstOrDefault(o => o.Resolution == timeResolution.Value);
+            if (selected is null || !selected.IsAllowed)
+                return Result.Failure<ModelDto?>(ResultErrorType.BadRequest, "Seçilen zaman çözümlemesi izin verilmiyor.");
+        }
+
         var modelEntity = new Model
         {
             ProjectId = dataset!.ProjectId,
@@ -83,6 +92,9 @@ public class ModelService : IModelService
             Hyperparameters = hyperparameters == null
                 ? null
                 : JsonSerializer.Serialize(hyperparameters, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
+            TrainingResolution = timeResolution,
+            TrainingAggregation = aggregationFunction,
+            TrainingRowCount = null,
             ModelFilePath = null, // burası pythondan gelince doldurulcak
             Status = ModelStatus.Queued,
             TrainingStartedAt = null,
@@ -98,7 +110,7 @@ public class ModelService : IModelService
         try
         {
             jobId = _backgroundJobClient.Enqueue<IModelProcessingService>(service =>
-                service.ProcessModelAsync(modelEntity.Id, CancellationToken.None));
+                service.ProcessModelAsync(modelEntity.Id, timeResolution ?? TimeResolution.Raw, aggregationFunction ?? AggregationFunction.None, CancellationToken.None));
         }
         catch (Exception ex)
         {
@@ -147,7 +159,7 @@ public class ModelService : IModelService
             return Result.Failure(ResultErrorType.ValidationError, "Tahmin üretebilmek için modelin eğitiminin tamamlanmış olması gerekir.");
         }
 
-        model.ForecastStatus = TimeSeriesForecaster.ForecastStatus.Queued;
+        model.ForecastStatus = ForecastStatus.Queued;
         model.ForecastProgressPercentage = 0;
         model.ForecastErrorMessage = null;
         model.ForecastCompletedAt = null;
@@ -229,4 +241,55 @@ public class ModelService : IModelService
         return Result.Success<ModelComponentsDto?>(componentsResult);
     }
 
+    public async Task<Result<List<ResolutionOptionDto>>> GetResolutionOptionsAsync(int datasetId, int userId, CancellationToken cancellationToken = default)
+    {
+        var userOwnsDataset = await _datasetRepository.UserOwnsDatasetAsync(datasetId: datasetId, userId: userId);
+        if (!userOwnsDataset)
+        {
+            return Result.Failure<List<ResolutionOptionDto>>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
+        }
+
+        var resolutionPointCounts = await _dataPointRepository.GetResolutionPointCountsAsync(datasetId: datasetId, cancellationToken);
+
+        var resolutionOptions = new List<ResolutionOptionDto>();
+        foreach (TimeResolution resolution in Enum.GetValues(typeof(TimeResolution)))
+        {
+            int estimatedPoints = resolutionPointCounts.ElementAtOrDefault((int)resolution);
+            bool isAllowed = estimatedPoints >= ResolutionSettings.MinPointsForAllowed && estimatedPoints <= ResolutionSettings.MaxPointsForAllowed;
+
+            resolutionOptions.Add(new ResolutionOptionDto
+            {
+                Resolution = resolution,
+                EstimatedPoints = estimatedPoints,
+                IsAllowed = isAllowed,
+                IsRecommended = false
+            });
+        }
+
+        var closestOption = resolutionOptions
+            .Where(o => o.IsAllowed)
+            .MinBy(o => GetDistanceToRecommendedRange(o.EstimatedPoints));
+
+        if (closestOption is not null)
+        {
+            closestOption.IsRecommended = true;
+        }
+
+        return Result<List<ResolutionOptionDto>>.Success(resolutionOptions);
+    }
+
+    private static int GetDistanceToRecommendedRange(int estimatedPoints)
+    {
+        if (estimatedPoints < ResolutionSettings.MinPointsForRecommended)
+        {
+            return ResolutionSettings.MinPointsForRecommended - estimatedPoints;
+        }
+
+        if (estimatedPoints > ResolutionSettings.MaxPointsForRecommended)
+        {
+            return estimatedPoints - ResolutionSettings.MaxPointsForRecommended;
+        }
+
+        return 0;
+    }
 }

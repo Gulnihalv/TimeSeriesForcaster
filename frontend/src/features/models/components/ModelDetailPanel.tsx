@@ -11,8 +11,13 @@ import {
   ModelStatus,
   ForecastStatus,
   MetricName,
+  TimeResolution,
+  AggregationFunction,
+  RESOLUTION_LABELS,
+  AGGREGATION_LABELS,
   type ModelDetail,
 } from '../api/modelApi';
+import type { Dataset } from '../../datasets/api/datasetApi';
 import ForecastChart from './ForecastChart';
 import ModelComponentsPanel from './ModelComponentsPanel';
 import { useToast } from '../../../components/Toast/ToastContext';
@@ -21,7 +26,10 @@ import styles from './ModelDetailPanel.module.css';
 
 interface ModelDetailPanelProps {
   modelId: number;
+  dataset?: Dataset | null;
 }
+
+const formatCount = (n: number) => n.toLocaleString('tr-TR');
 
 const METRIC_LABELS: Record<MetricName, string> = {
   [MetricName.MAE]: 'MAE',
@@ -30,7 +38,7 @@ const METRIC_LABELS: Record<MetricName, string> = {
 
 const METRIC_TONES = ['violet', 'blue', 'amber', 'green'] as const;
 
-const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
+const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId, dataset }) => {
   const [horizon, setHorizon] = useState(30);
   const [isTriggering, setIsTriggering] = useState(false);
   const [triggerError, setTriggerError] = useState<string | null>(null);
@@ -105,6 +113,18 @@ const ModelDetailPanel: FC<ModelDetailPanelProps> = ({ modelId }) => {
       {model.status === ModelStatus.Failed && model.errorMessage && (
         <div className={styles.error}>{model.errorMessage}</div>
       )}
+
+      {model.trainingAggregation != null &&
+        model.trainingAggregation !== AggregationFunction.None &&
+        model.trainingResolution != null &&
+        model.trainingResolution !== TimeResolution.Raw &&
+        model.trainingRowCount != null && (
+          <p className={styles.trainingInfo}>
+            {dataset ? `${formatCount(dataset.recordCount)} kayıt → ` : ''}
+            {RESOLUTION_LABELS[model.trainingResolution].toLowerCase()}{' '}
+            {AGGREGATION_LABELS[model.trainingAggregation].toLowerCase()} ile {formatCount(model.trainingRowCount)} nokta
+          </p>
+        )}
 
       {model.metrics.length > 0 && (
         <div className={styles.metricGrid}>

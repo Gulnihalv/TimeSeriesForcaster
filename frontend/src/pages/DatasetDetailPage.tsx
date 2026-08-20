@@ -116,7 +116,7 @@ const DatasetDetailPage = () => {
           )}
 
           {selectedModelIds.length === 1 && (
-            <ModelDetailPanel modelId={selectedModelIds[0]} />
+            <ModelDetailPanel modelId={selectedModelIds[0]} dataset={dataset} />
           )}
 
           {selectedModelIds.length >= 2 && (

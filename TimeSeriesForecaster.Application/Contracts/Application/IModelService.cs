@@ -8,8 +8,9 @@ public interface IModelService
     Task<Result<ModelDto?>> GetModelByIdAsync(int modelId, int userId);
     Task<Result<ModelDetailDto?>> GetModelDetailByIdAsync(int modelId, int userId);
     Task<Result<IEnumerable<ModelDto>>> GetAllModelsForDatasetAsync(int datasetId, int userId);
-    Task<Result<ModelDto?>> TrainModelAsync(int datasetId, int userId, string algorithm, ProphetHyperparametersDto? hyperparameters = null);
+    Task<Result<ModelDto?>> TrainModelAsync(int datasetId, int userId, string algorithm, ProphetHyperparametersDto? hyperparameters = null, TimeResolution? trainingResolution = null, AggregationFunction? trainingAggregation = null);
     Task<Result> GenerateForecastAsync(int modelId, int userId, int horizon);
     Task<Result> DeleteModelAsync(int modelId, int userId);
     Task<Result<ModelComponentsDto?>> GetModelComponentsAsync(int modelId, int userId, CancellationToken cancellationToken = default);
+    Task<Result<List<ResolutionOptionDto>>> GetResolutionOptionsAsync(int datasetId, int userId, CancellationToken cancellationToken = default);
 }

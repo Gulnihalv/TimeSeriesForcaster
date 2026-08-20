@@ -37,7 +37,7 @@ public class ModelProcessingService : IModelProcessingService
         _logger = logger;
     }
 
-    public async Task<Result> ProcessModelAsync(int modelId, CancellationToken cancellationToken = default)
+    public async Task<Result> ProcessModelAsync(int modelId, TimeResolution resolution, AggregationFunction aggregation, CancellationToken cancellationToken = default)
     {
         using (_logger.BeginScope(new Dictionary<string, object> { ["ModelId"] = modelId }))
         {
@@ -52,22 +52,28 @@ public class ModelProcessingService : IModelProcessingService
             model.ProgressPercentage = 5;
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // Prophet'in fit() çağrısı tek, bloklayıcı ve ara ilerleme sinyali
-            // vermeyen bir işlem (ml-service'te epoch/adım bazlı bir geri bildirim
-            // yok). Bu yüzden burada gerçek bir ölçüm değil, zamana dayalı tahmini
-            // bir ilerleme simülasyonu çalıştırıyoruz - HTTP çağrısı boyunca
-            // yüzdeyi kademeli olarak artırıp çağrı bitince 100'e sabitliyoruz.
             using var progressCts = new CancellationTokenSource();
             var progressTask = SimulateTrainingProgressAsync(model.Id, progressCts.Token);
 
             try
             {
-                var dataPoints = await _dataPointRepository.GetDataPointsAsync(datasetId: model.DatasetId);
+                var dataPoints = Enumerable.Empty<dynamic>(); //inşallah çalışır
+                if (resolution == TimeResolution.Raw)
+                {
+                    dataPoints = await _dataPointRepository.GetDataPointsAsync(datasetId: model.DatasetId);
+                }
+                else
+                {
+                    dataPoints = await _dataPointRepository.GetAggregatedDataPointsAsync(model.DatasetId, resolution, aggregation, cancellationToken);
+                }
+                
                 if (dataPoints == null || !dataPoints.Any())
                 {
                     _logger.LogWarning("No data points found for DatasetId: {DatasetId}. Model training cannot proceed.", model.DatasetId);
                     throw new Exception("Model eğitimi için veri noktaları bulunamadı.");
                 }
+
+                _logger.LogInformation("Retrieved {Count} aggregated data points for DatasetId: {DatasetId}.", dataPoints.Count(), model.DatasetId);
 
                 var trainingData = dataPoints.Select(dp => new
                 {
@@ -120,6 +126,7 @@ public class ModelProcessingService : IModelProcessingService
                 var modelPath = trainingResult?.ModelPath;
                 model.TrainingCompletedAt = DateTime.UtcNow;
                 model.Status = ModelStatus.Completed;
+                model.TrainingRowCount = dataPoints.Count();
                 model.ModelFilePath = modelPath;
                 model.ErrorMessage = null;
                 model.ProgressPercentage = 100;

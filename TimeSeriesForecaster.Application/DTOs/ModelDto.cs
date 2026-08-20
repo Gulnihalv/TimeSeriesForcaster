@@ -20,4 +20,7 @@ public class ModelDto
     public string? ForecastErrorMessage { get; set; }
     public DateTime? ForecastStartedAt { get; set; }
     public DateTime? ForecastCompletedAt { get; set; }
+    public TimeResolution? TrainingResolution { get; set; }
+    public AggregationFunction? TrainingAggregation { get; set; }
+    public int? TrainingRowCount { get; set; }
 }

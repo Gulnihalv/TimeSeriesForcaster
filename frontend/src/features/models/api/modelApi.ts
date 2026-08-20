@@ -24,6 +24,23 @@ export const MetricName = {
 } as const;
 export type MetricName = (typeof MetricName)[keyof typeof MetricName];
 
+export const TimeResolution = {
+  Raw: 0,
+  Minute: 1,
+  Hour: 2,
+  Day: 3,
+  Week: 4,
+  Month: 5
+} as const;
+export type TimeResolution = (typeof TimeResolution)[keyof typeof TimeResolution];
+
+export const AggregationFunction = {
+  Average: 0,
+  Sum: 1,
+  None: 2
+} as const;
+export type AggregationFunction = (typeof AggregationFunction)[keyof typeof AggregationFunction];
+
 export interface Model {
   id: number;
   projectId: number;
@@ -43,6 +60,9 @@ export interface Model {
   forecastErrorMessage: string | null;
   forecastStartedAt: string | null;
   forecastCompletedAt: string | null;
+  trainingResolution: TimeResolution | null;
+  trainingAggregation: AggregationFunction | null;
+  trainingRowCount: number | null;
 }
 
 export interface Prediction {
@@ -76,6 +96,28 @@ export interface ModelComponents {
   yearly: ComponentPoint[] | null;
 }
 
+export interface ResolutionOption {
+  resolution: TimeResolution;
+  estimatedPoints: number;
+  isAllowed: boolean;
+  isRecommended: boolean;
+}
+
+export const RESOLUTION_LABELS: Record<TimeResolution, string> = {
+  [TimeResolution.Raw]: 'Ham',
+  [TimeResolution.Minute]: 'Dakikalık',
+  [TimeResolution.Hour]: 'Saatlik',
+  [TimeResolution.Day]: 'Günlük',
+  [TimeResolution.Week]: 'Haftalık',
+  [TimeResolution.Month]: 'Aylık',
+};
+
+export const AGGREGATION_LABELS: Record<AggregationFunction, string> = {
+  [AggregationFunction.Average]: 'Ortalama',
+  [AggregationFunction.Sum]: 'Toplam',
+  [AggregationFunction.None]: 'Yok',
+};
+
 // Prophet'in onlarca parametresi var, en çok etkisi olan birkaçını sunuyoruz.
 // Hepsi opsiyonel - gönderilmezse backend/Prophet kendi varsayılanlarını kullanır.
 export interface ProphetHyperparameters {
@@ -88,11 +130,15 @@ export interface ProphetHyperparameters {
 export const trainModel = async (
   datasetId: number,
   algorithm: string = "prophet",
-  hyperparameters?: ProphetHyperparameters
+  hyperparameters?: ProphetHyperparameters,
+  timeResolution?: TimeResolution,
+  aggregationFunction?: AggregationFunction
 ): Promise<Model> => {
   const response = await apiClient.post<Model>(`/datasets/${datasetId}/models`, {
     algorithm,
     hyperparameters,
+    trainingResolution: timeResolution,
+    trainingAggregation: aggregationFunction
   });
   return response.data;
 };
@@ -111,8 +157,6 @@ export const generateForecast = async (
   modelId: number,
   horizon: number = 30
 ): Promise<void> => {
-  // Backend 202 Accepted dönüyor - iş Hangfire'a kuyruklandı, henüz sonuç hazır değil.
-  // Sonucu görmek için getModelById ile polling yapılması gerekir.
   await apiClient.post(`/models/${modelId}/forecast`, { horizon });
 };
 
@@ -122,5 +166,10 @@ export const deleteModel = async (modelId: number): Promise<void> => {
 
 export const getModelComponents = async (modelId: number): Promise<ModelComponents> => {
   const response = await apiClient.get<ModelComponents>(`/models/${modelId}/components`);
+  return response.data;
+};
+
+export const getResolutionOptions = async (datasetId: number): Promise<ResolutionOption[]> => {
+  const response = await apiClient.get<ResolutionOption[]>(`/datasets/${datasetId}/resolution-options`);
   return response.data;
 };

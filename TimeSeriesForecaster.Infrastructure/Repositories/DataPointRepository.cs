@@ -192,4 +192,75 @@ public class DataPointRepository : IDataPointRepository
             CoefficientOfVariation = coefficientOfVariation
         };
     }
+
+    public async Task<IEnumerable<AggregatedPoint>> GetAggregatedDataPointsAsync(int datasetId, TimeResolution resolution, AggregationFunction aggregation, CancellationToken cancellationToken = default)
+    {
+        var truncUnit = resolution switch
+        {
+            TimeResolution.Minute => "minute",
+            TimeResolution.Hour => "hour",
+            TimeResolution.Day => "day",
+            TimeResolution.Week => "week",
+            TimeResolution.Month => "month",
+            _ => throw new ArgumentOutOfRangeException(nameof(resolution), resolution, null)
+        };
+
+        var aggFunc = aggregation switch
+        {
+            AggregationFunction.Average => "AVG",
+            AggregationFunction.Sum => "SUM",
+            _ => throw new ArgumentOutOfRangeException(nameof(aggregation), aggregation, null)
+        };
+
+        var sql = $@"
+            SELECT
+                date_trunc('{truncUnit}', ""Timestamp"") AS ""Timestamp"",
+                {aggFunc}(""Value"") AS ""Value""
+            FROM ""DataPoints""
+            WHERE ""DatasetId"" = {{0}}
+            GROUP BY date_trunc('{truncUnit}', ""Timestamp"")
+            ORDER BY ""Timestamp""
+            ";
+
+        var result = await _context.Database
+            .SqlQueryRaw<AggregatedPoint>(sql, datasetId)
+            .ToListAsync(cancellationToken);
+
+        return result;
+    }
+
+    public async Task<IEnumerable<int>> GetResolutionPointCountsAsync(int datasetId, CancellationToken cancellationToken = default)
+    {
+        var counts = new int[Enum.GetValues(typeof(TimeResolution)).Length];
+        counts[(int)TimeResolution.Raw] = await GetDataPointsCountAsync(datasetId);
+
+        var aggregatableResolutions = new[] { TimeResolution.Minute, TimeResolution.Hour, TimeResolution.Day, TimeResolution.Week, TimeResolution.Month };
+
+        foreach (var resolution in aggregatableResolutions)
+        {
+            var truncUnit = resolution switch
+            {
+                TimeResolution.Minute => "minute",
+                TimeResolution.Hour => "hour",
+                TimeResolution.Day => "day",
+                TimeResolution.Week => "week",
+                TimeResolution.Month => "month",
+                _ => throw new ArgumentOutOfRangeException(nameof(resolution), resolution, null)
+            };
+
+            var sql = $@"
+                SELECT COUNT(DISTINCT date_trunc('{truncUnit}', ""Timestamp"")) AS ""Value""
+                FROM ""DataPoints""
+                WHERE ""DatasetId"" = {{0}}
+            ";
+
+            var count = await _context.Database
+                .SqlQueryRaw<int>(sql, datasetId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            counts[(int)resolution] = count;
+        }
+
+        return counts;
+    }
 }
