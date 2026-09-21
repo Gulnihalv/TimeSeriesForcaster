@@ -19,9 +19,16 @@ public class DataProcessingService : IDataProcessingService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<DataProcessingService> _logger;
+    private readonly int _chunkSize;
 
-    public DataProcessingService(IDataPointRepository dataPointRepository, IDatasetRepository datasetRepository, IProjectRepository projectRepository, INotificationService notificationService, IUnitOfWork unitOfWork, IWebHostEnvironment env, ILogger<DataProcessingService> logger)
+    public const int DefaultChunkSize = 10000;
+
+    // chunkSize DI'da kayıtlı değil, varsayılan değeri kullanılır; testlerde küçük bir değer verilerek
+    // binlerce satırlık CSV üretmeden chunk'lama davranışı test edilebilir.
+    public DataProcessingService(IDataPointRepository dataPointRepository, IDatasetRepository datasetRepository, IProjectRepository projectRepository, INotificationService notificationService, IUnitOfWork unitOfWork, IWebHostEnvironment env, ILogger<DataProcessingService> logger, int chunkSize = DefaultChunkSize)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(chunkSize, 1);
+        _chunkSize = chunkSize;
         _dataPointRepository = dataPointRepository;
         _datasetRepository = datasetRepository;
         _projectRepository = projectRepository;
@@ -129,8 +136,7 @@ public class DataProcessingService : IDataProcessingService
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
                 var totalRows = File.ReadLines(filePath).Count() - 1;
-                var chunkSize = 10000;
-                var importResult = await ImportDataPointsAsync(dataset, filePath, chunkSize, totalRows,cancellationToken);
+                var importResult = await ImportDataPointsAsync(dataset, filePath, _chunkSize, totalRows,cancellationToken);
 
                 if (importResult.SkippedRows > 0)
                 {
