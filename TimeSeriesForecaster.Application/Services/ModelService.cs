@@ -20,7 +20,7 @@ public class ModelService : IModelService
     private readonly IMapper _mapper;
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly IHttpClientFactory _httpClientFactory;
- 
+
     public ModelService(IModelRepository modelRepository, IDatasetRepository datasetRepository, IDataPointRepository dataPointRepository, IUnitOfWork unitOfWork, IMapper mapper, IBackgroundJobClient backgroundJobClient, IHttpClientFactory httpClientFactory)
     {
         _modelRepository = modelRepository;
@@ -71,29 +71,43 @@ public class ModelService : IModelService
         }
 
         var dataset = await _datasetRepository.GetDatasetByIdAsync(id: datasetId, trackChanges: false);
-
-        if (timeResolution.HasValue)
+        if (dataset == null)
         {
-            var optionsResult = await GetResolutionOptionsAsync(datasetId, userId);
-            var selected = optionsResult.Value?.FirstOrDefault(o => o.Resolution == timeResolution.Value);
-            if (selected is null || !selected.IsAllowed)
-                return Result.Failure<ModelDto?>(ResultErrorType.BadRequest, "Seçilen zaman çözümlemesi izin verilmiyor.");
+            return Result.Failure<ModelDto?>(ResultErrorType.NotFound, ErrorMessages.DatasetNotFound);
+        }
+
+        // Çözünürlük gönderilmediyse ham veriyle eğitim demektir. Bu durum da doğrulamadan geçmeli;
+        // aksi halde API'yi doğrudan çağıran biri limitin çok üstündeki bir dataset'i ham haliyle eğitime sokabilir.
+        var effectiveResolution = timeResolution ?? TimeResolution.Raw;
+
+        // Ham veride agregasyon anlamsız. Agregasyonlu çözünürlükte fonksiyon gönderilmediyse UI'daki varsayılan
+        // (ortalama) kullanılır; aksi halde None ile kuyruğa giren job, agregasyon sorgusunda patlardı.
+        var effectiveAggregation = effectiveResolution == TimeResolution.Raw
+            ? AggregationFunction.None
+            : aggregationFunction ?? AggregationFunction.Average;
+
+        var pointCount = await GetPointCountForResolutionAsync(dataset, effectiveResolution);
+        if (!IsWithinAllowedRange(pointCount))
+        {
+            return Result.Failure<ModelDto?>(ResultErrorType.BadRequest,
+                $"Seçilen çözünürlük ({effectiveResolution}) {pointCount:N0} nokta üretiyor; izin verilen aralık " +
+                $"{ResolutionSettings.MinPointsForAllowed:N0}–{ResolutionSettings.MaxPointsForAllowed:N0}. Farklı bir zaman çözünürlüğü seçin.");
         }
 
         var modelEntity = new Model
         {
-            ProjectId = dataset!.ProjectId,
+            ProjectId = dataset.ProjectId,
             DatasetId = datasetId,
             ModelName = $"{algorithm} Model - {DateTime.UtcNow:d}",
             Algorithm = algorithm,
-            // Hiperparametreleri JSON string olarak saklıyoruz - hem eğitim sırasında Python'a
-            // iletmek hem de ileride model karşılaştırma ekranında "hangi ayarla eğitildi" diye
-            // göstermek için. Hiçbiri gönderilmezse null kalır, Prophet kendi varsayılanlarını kullanır.
+            // Hiperparametreler camelCase JSON olarak saklanıyor: frontend'deki model karşılaştırma ekranı bu
+            // anahtarlarla okuyor. Python'a gönderilirken ModelProcessingService tarafından snake_case'e çevriliyor.
+            // Hiçbiri gönderilmezse null kalır, Prophet kendi varsayılanlarını kullanır.
             Hyperparameters = hyperparameters == null
                 ? null
                 : JsonSerializer.Serialize(hyperparameters, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
             TrainingResolution = timeResolution,
-            TrainingAggregation = aggregationFunction,
+            TrainingAggregation = effectiveResolution == TimeResolution.Raw ? null : effectiveAggregation,
             TrainingRowCount = null,
             ModelFilePath = null, // burası pythondan gelince doldurulcak
             Status = ModelStatus.Queued,
@@ -110,7 +124,7 @@ public class ModelService : IModelService
         try
         {
             jobId = _backgroundJobClient.Enqueue<IModelProcessingService>(service =>
-                service.ProcessModelAsync(modelEntity.Id, timeResolution ?? TimeResolution.Raw, aggregationFunction ?? AggregationFunction.None, CancellationToken.None));
+                service.ProcessModelAsync(modelEntity.Id, effectiveResolution, effectiveAggregation, CancellationToken.None));
         }
         catch (Exception ex)
         {
@@ -126,6 +140,22 @@ public class ModelService : IModelService
         var modelDto = _mapper.Map<ModelDto>(modelEntity);
         return Result.Success<ModelDto?>(modelDto);
     }
+
+    // Ham nokta sayısı dataset'te zaten saklı (RecordCount); pahalı COUNT(DISTINCT ...) sorgusunu sadece
+    // agregasyonlu çözünürlüklerde çalıştırıyoruz.
+    private async Task<int> GetPointCountForResolutionAsync(Dataset dataset, TimeResolution resolution, CancellationToken cancellationToken = default)
+    {
+        if (resolution == TimeResolution.Raw)
+        {
+            return dataset.RecordCount;
+        }
+
+        var counts = await _dataPointRepository.GetResolutionPointCountsAsync(dataset.Id, cancellationToken);
+        return counts.GetValueOrDefault(resolution);
+    }
+
+    private static bool IsWithinAllowedRange(int points)
+        => points >= ResolutionSettings.MinPointsForAllowed && points <= ResolutionSettings.MaxPointsForAllowed;
 
     public async Task<Result<ModelDetailDto?>> GetModelDetailByIdAsync(int modelId, int userId)
     {
@@ -199,30 +229,30 @@ public class ModelService : IModelService
         {
             return Result.Failure<ModelComponentsDto?>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
- 
+
         var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: false);
         if (model == null)
         {
             return Result.Failure<ModelComponentsDto?>(ResultErrorType.NotFound, "Model bulunamadı.");
         }
- 
+
         if (model.Status != ModelStatus.Completed || string.IsNullOrEmpty(model.ModelFilePath))
         {
             return Result.Failure<ModelComponentsDto?>(ResultErrorType.ValidationError, "Bileşenleri görebilmek için modelin eğitiminin tamamlanmış olması gerekir.");
         }
-        
+
         var requestBody = new { model_path = model.ModelFilePath };
         var httpClient = _httpClientFactory.CreateClient(MlServiceClients.MlServiceStandard);
         var stringContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
- 
+
         HttpResponseMessage httpResponse;
         try
         {
             httpResponse = await httpClient.PostAsync($"components/{model.Algorithm!.ToLower()}", stringContent, cancellationToken);
         }
-        catch (Exception ex) when (ex is HttpRequestException|| (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
-            // ML servisine hiç ulaşılamadı (ayakta değil, ağ sorunu vs.)
+            // ML servisine hiç ulaşılamadı (ayakta değil, ağ sorunu, timeout vs.)
             return Result.Failure<ModelComponentsDto?>(ResultErrorType.Unexpected, $"ML servisine ulaşılamadı: {ex.Message}");
         }
 
@@ -230,14 +260,14 @@ public class ModelService : IModelService
         {
             return Result.Failure<ModelComponentsDto?>(ResultErrorType.Unexpected, "Model bileşenleri alınırken Python API'ında bir hata oluştu.");
         }
- 
+
         var responseBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
         var componentsResult = JsonSerializer.Deserialize<ModelComponentsDto>(responseBody, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
         });
- 
+
         return Result.Success<ModelComponentsDto?>(componentsResult);
     }
 
@@ -252,16 +282,16 @@ public class ModelService : IModelService
         var resolutionPointCounts = await _dataPointRepository.GetResolutionPointCountsAsync(datasetId: datasetId, cancellationToken);
 
         var resolutionOptions = new List<ResolutionOptionDto>();
-        foreach (TimeResolution resolution in Enum.GetValues(typeof(TimeResolution)))
+        foreach (var resolution in Enum.GetValues<TimeResolution>())
         {
-            int estimatedPoints = resolutionPointCounts.ElementAtOrDefault((int)resolution);
-            bool isAllowed = estimatedPoints >= ResolutionSettings.MinPointsForAllowed && estimatedPoints <= ResolutionSettings.MaxPointsForAllowed;
+            // Sözlükte olmayan çözünürlük 0 nokta sayılır → izinsiz.
+            var estimatedPoints = resolutionPointCounts.GetValueOrDefault(resolution);
 
             resolutionOptions.Add(new ResolutionOptionDto
             {
                 Resolution = resolution,
                 EstimatedPoints = estimatedPoints,
-                IsAllowed = isAllowed,
+                IsAllowed = IsWithinAllowedRange(estimatedPoints),
                 IsRecommended = false
             });
         }

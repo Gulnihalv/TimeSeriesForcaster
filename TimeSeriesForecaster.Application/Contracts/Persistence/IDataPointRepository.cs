@@ -17,5 +17,5 @@ public interface IDataPointRepository
     Task BulkCopyDataPointsAsync(IEnumerable<DataPoint> dataPoints, CancellationToken cancellationToken = default);
     Task<DatasetStatistics> GetStatisticsAsync(int datasetId, CancellationToken cancellationToken = default);
     Task<IEnumerable<AggregatedPoint>> GetAggregatedDataPointsAsync(int datasetId, TimeResolution resolution, AggregationFunction aggregation, CancellationToken cancellationToken = default);
-    Task<IEnumerable<int>> GetResolutionPointCountsAsync(int datasetId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<TimeResolution, int>> GetResolutionPointCountsAsync(int datasetId, CancellationToken cancellationToken = default);
 }

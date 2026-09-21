@@ -22,9 +22,11 @@ public class DataProcessingService : IDataProcessingService
     private readonly int _chunkSize;
 
     public const int DefaultChunkSize = 10000;
+    private const DateTimeStyles TimestampStyles = DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal;
 
-    // chunkSize DI'da kayıtlı değil, varsayılan değeri kullanılır; testlerde küçük bir değer verilerek
-    // binlerce satırlık CSV üretmeden chunk'lama davranışı test edilebilir.
+    private const NumberStyles ValueStyles = NumberStyles.Float;
+
+
     public DataProcessingService(IDataPointRepository dataPointRepository, IDatasetRepository datasetRepository, IProjectRepository projectRepository, INotificationService notificationService, IUnitOfWork unitOfWork, IWebHostEnvironment env, ILogger<DataProcessingService> logger, int chunkSize = DefaultChunkSize)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(chunkSize, 1);
@@ -38,67 +40,84 @@ public class DataProcessingService : IDataProcessingService
         _logger = logger;
     }
 
-    private record ImportResult(int ImportedRows, int SkippedRows, DateTime? MinDate, DateTime? MaxDate);
-
-    private async Task<ImportResult> ImportDataPointsAsync(Dataset dataset, string filePath,int chunkSize, int totalRows, CancellationToken cancellationToken)
+    private record ImportResult(int ImportedRows, int SkippedRows, DateTime? MinDate, DateTime? MaxDate)
     {
-        var dataPoints = new List<DataPoint>();
+        public static readonly ImportResult Empty = new(0, 0, null, null);
+    }
+
+    private async Task<ImportResult> ImportDataPointsAsync(Dataset dataset, string filePath, int totalRows, CancellationToken cancellationToken)
+    {
+        using var reader = new StreamReader(filePath);
+        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+
+        if (!csv.Read())
+        {
+            _logger.LogWarning("CSV dosyası boş, başlık satırı bulunamadı.");
+            return ImportResult.Empty;
+        }
+        csv.ReadHeader();
+
+        // Kolonları her satırda isimle aramak yerine indekslerini bir kez buluyoruz. Karşılaştırma
+        // büyük/küçük harf duyarsız: yükleme sırasındaki kolon doğrulaması (DatasetService) da öyle çalışıyor.
+        var headers = csv.HeaderRecord ?? Array.Empty<string>();
+        var dateIndex = FindColumnIndex(headers, dataset.DateColumn);
+        var valueIndex = FindColumnIndex(headers, dataset.TargetColumn);
+
+        if (dateIndex < 0 || valueIndex < 0)
+        {
+            // Kolon yoksa her satır zaten başarısız olacak; milyonlarca satırı tek tek denemek yerine hemen dönüyoruz.
+            _logger.LogWarning("Beklenen kolonlar bulunamadı. DateColumn: {DateColumn}, TargetColumn: {TargetColumn}",
+                dataset.DateColumn, dataset.TargetColumn);
+            return ImportResult.Empty;
+        }
+
+        var dataPoints = new List<DataPoint>(_chunkSize);
         DateTime? minDate = null;
         DateTime? maxDate = null;
+        int readRows = 0;
+        int importedRows = 0;
         int skippedRows = 0;
-        int processedRows = 0;
         int lastSavedProgress = 0;
 
-        using (var reader = new StreamReader(filePath))
-        using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+        while (csv.Read())
         {
-            csv.Read();
-            csv.ReadHeader();
+            cancellationToken.ThrowIfCancellationRequested();
+            readRows++;
 
-            string dateColumn = dataset.DateColumn!;
-            string targetColumn = dataset.TargetColumn!;
-
-            while (csv.Read())
+            if (TryParseRow(csv, dateIndex, valueIndex, out var timestamp, out var value))
             {
-                try
+                if (minDate == null || timestamp < minDate) minDate = timestamp;
+                if (maxDate == null || timestamp > maxDate) maxDate = timestamp;
+
+                dataPoints.Add(new DataPoint
                 {
-                    var rawTimeStamp = csv.GetField<DateTime>(dateColumn);
-                    var timeStamp = DateTime.SpecifyKind(rawTimeStamp, DateTimeKind.Utc);
-                    var value = csv.GetField<decimal>(targetColumn);
+                    DatasetId = dataset.Id,
+                    Timestamp = timestamp,
+                    Value = value,
+                    IsOutlier = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+                importedRows++;
+            }
+            else
+            {
+                skippedRows++;
+            }
 
-                    if (minDate == null || timeStamp < minDate) minDate = timeStamp;
-                    if (maxDate == null || timeStamp > maxDate) maxDate = timeStamp;
+            // '>=' savunmacı: liste bir şekilde chunk boyutunu aşarsa bile bir sonraki satırda yine flush edilir.
+            if (dataPoints.Count >= _chunkSize)
+            {
+                await _dataPointRepository.BulkCopyDataPointsAsync(dataPoints, cancellationToken);
+                dataPoints.Clear();
+            }
 
-                    var newDataPoint = new DataPoint
-                    {
-                        DatasetId = dataset.Id,
-                        Timestamp = timeStamp,
-                        Value = value,
-                        IsOutlier = false,
-                        CreatedAt = DateTime.UtcNow
-                    };
-
-                    dataPoints.Add(newDataPoint);
-                    processedRows++;
-                    
-                    if (dataPoints.Count == chunkSize)
-                    {
-                        await _dataPointRepository.BulkCopyDataPointsAsync(dataPoints, cancellationToken);
-                        dataPoints.Clear();
-                    }
-
-                    int currentProgress = totalRows > 0 ? (int)((double)processedRows / totalRows * 100) : 0;
-                    if (currentProgress >= lastSavedProgress + 5)
-                    {
-                        dataset.ProgressPercentage = currentProgress;
-                        await _unitOfWork.SaveChangesAsync(cancellationToken);
-                        lastSavedProgress = currentProgress;
-                    }
-                }
-                catch (Exception)
-                {
-                    skippedRows++;
-                }
+            // İlerleme okunan satıra (başarılı + atlanan) göre hesaplanır, böylece bozuk satırlı dosyalarda da %100'e ulaşır.
+            int currentProgress = totalRows > 0 ? (int)((double)readRows / totalRows * 100) : 0;
+            if (currentProgress >= lastSavedProgress + 5)
+            {
+                dataset.ProgressPercentage = currentProgress;
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                lastSavedProgress = currentProgress;
             }
         }
 
@@ -108,9 +127,30 @@ public class DataProcessingService : IDataProcessingService
             dataPoints.Clear();
         }
 
-        return new ImportResult(processedRows, skippedRows, minDate, maxDate);
+        return new ImportResult(importedRows, skippedRows, minDate, maxDate);
     }
-    
+
+    private static int FindColumnIndex(string[] headers, string? columnName)
+    {
+        if (string.IsNullOrWhiteSpace(columnName)) return -1;
+        return Array.FindIndex(headers, h => string.Equals(h, columnName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool TryParseRow(CsvReader csv, int dateIndex, int valueIndex, out DateTime timestamp, out decimal value)
+    {
+        timestamp = default;
+        value = default;
+
+        // Eksik alanlı (kısa) satırlar da bozuk satır sayılır.
+        if (dateIndex >= csv.Parser.Count || valueIndex >= csv.Parser.Count)
+        {
+            return false;
+        }
+
+        return DateTime.TryParse(csv.Parser[dateIndex], CultureInfo.InvariantCulture, TimestampStyles, out timestamp)
+            && decimal.TryParse(csv.Parser[valueIndex], ValueStyles, CultureInfo.InvariantCulture, out value);
+    }
+
     public async Task<Result> ProcessDatasetAsync(int datasetId, CancellationToken cancellationToken = default)
     {
         using (_logger.BeginScope(new Dictionary<string, object> { ["DatasetId"] = datasetId }))
@@ -136,11 +176,12 @@ public class DataProcessingService : IDataProcessingService
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
                 var totalRows = File.ReadLines(filePath).Count() - 1;
-                var importResult = await ImportDataPointsAsync(dataset, filePath, _chunkSize, totalRows,cancellationToken);
+                var importResult = await ImportDataPointsAsync(dataset, filePath, totalRows, cancellationToken);
 
                 if (importResult.SkippedRows > 0)
                 {
-                    _logger.LogWarning("{FailedRows} / {TotalRows} satır okunamadı.", importResult.SkippedRows, totalRows);
+                    _logger.LogWarning("{FailedRows} / {TotalRows} satır okunamadı.",
+                        importResult.SkippedRows, importResult.ImportedRows + importResult.SkippedRows);
                 }
 
                 if (!importResult.MinDate.HasValue || !importResult.MaxDate.HasValue)
@@ -175,25 +216,38 @@ public class DataProcessingService : IDataProcessingService
                     _logger.LogWarning("Bildirim gönderilemedi: {Error}", successNotifyResult.Error);
                 }
 
-                _logger.LogInformation("Dataset processing completed successfully. Total records: {RecordCount}, StartDate: {StartDate}, EndDate: {EndDate}, SkippedRows: {SkippedRowCount}", dataset.RecordCount, dataset.StartDate, dataset.EndDate, dataset.SkippedRowCount);
+                _logger.LogInformation("Dataset processing completed successfully. Total records: {RecordCount}, StartDate: {StartDate}, EndDate: {EndDate}, SkippedRows: {SkippedRowCount}",
+                    dataset.RecordCount, dataset.StartDate, dataset.EndDate, dataset.SkippedRowCount);
                 return Result.Success();
+            }
+            catch (OperationCanceledException)
+            {
+                dataset.IsProcessed = false;
+                dataset.Status = ProcessingStatus.Failed;
+                dataset.ErrorMessage = "Dataset işleme iptal edildi.";
+                dataset.UpdatedAt = DateTime.UtcNow;
+
+                await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+                _logger.LogInformation("Dataset processing cancelled.");
+
+                // Yeniden fırlatmazsak Hangfire job'ı "başarılı" sayar.
+                throw;
             }
             catch (Exception ex)
             {
-                // Parse döngüsünün dışında (örn. dosya I/O hatası) beklenmeyen bir
-                // istisna oluşursa dataset "Processing"de asılı kalmasın.
+                // Beklenmeyen bir istisna (dosya I/O, DB hatası vb.) dataset'i "Processing"de asılı bırakmasın.
                 dataset.IsProcessed = false;
                 dataset.Status = ProcessingStatus.Failed;
                 dataset.ErrorMessage = ex.Message;
                 dataset.UpdatedAt = DateTime.UtcNow;
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _unitOfWork.SaveChangesAsync(CancellationToken.None);
                 var notifyResult = await NotifyDatasetResultAsync(dataset, success: false);
                 if (!notifyResult.IsSuccess)
                 {
                     _logger.LogWarning("Bildirim gönderilemedi: {Error}", notifyResult.Error);
                 }
 
-                _logger.LogError(ex, "Dataset processing failed: {ErrorMessage}", ex.Message);
+                _logger.LogError(ex, "Dataset processing failed.");
                 return Result.Failure(ResultErrorType.Unexpected, dataset.ErrorMessage);
             }
             finally

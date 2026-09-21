@@ -143,13 +143,30 @@ public class DataProcessingServiceTests : IDisposable
             OwnerUserId, NotificationType.DatasetProcessingCompleted, Arg.Any<string>(), "Dataset", DatasetId);
     }
 
-    // ---------- UTC regresyon kilidi ----------
+    [Fact]
+    public async Task ProcessDatasetAsync_ColumnNameCaseDiffers_StillMatchesColumns()
+    {
+        // Yükleme sırasındaki kolon doğrulaması (DatasetService) büyük/küçük harf duyarsız; işleme de öyle olmalı,
+        // yoksa doğrulamadan geçen bir dataset işlenirken "kolon bulunamadı" hatasına düşerdi.
+        _dataset.DateColumn = "date";
+        _dataset.TargetColumn = "VALUE";
+        WriteCsv("""
+            Date,Value
+            2024-01-01,1
+            """);
+
+        var result = await CreateSut().ProcessDatasetAsync(DatasetId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(_writtenPoints);
+    }
+
+    // ---------- UTC ve saat dilimi ----------
 
     [Fact]
     public async Task ProcessDatasetAsync_ValidCsv_AllTimestampsHaveUtcKind()
     {
         // Npgsql, "timestamp with time zone" kolonuna Kind != Utc bir DateTime yazmayı reddediyor.
-        // CSV'den parse edilen değerler Unspecified gelir; servis bunları Utc olarak işaretlemek zorunda.
         WriteCsv("""
             Date,Value
             2024-01-01,1
@@ -176,6 +193,27 @@ public class DataProcessingServiceTests : IDisposable
 
         Assert.Equal(DateTimeKind.Utc, _dataset.StartDate!.Value.Kind);
         Assert.Equal(DateTimeKind.Utc, _dataset.EndDate!.Value.Kind);
+    }
+
+    // DİKKAT: Bu test, bug olsa bile UTC saat diliminde çalışan bir makinede GEÇER (orada yerel saat = UTC,
+    // kayma oluşmaz). Asıl korumayı sağlaması için UTC olmayan bir ortamda çalıştırılmalı:
+    //   TZ=Europe/Istanbul dotnet test
+    // CI'da da test adımına aynı ortam değişkeni verilmeli.
+    [Theory]
+    [InlineData("2024-01-01T00:00:00Z", 2024, 1, 1, 0)]
+    [InlineData("2024-01-01T00:00:00+03:00", 2023, 12, 31, 21)]
+    [InlineData("2024-01-01T05:00:00-02:00", 2024, 1, 1, 7)]
+    public async Task ProcessDatasetAsync_TimestampWithOffset_IsConvertedToUtcNotRelabeled(
+        string input, int year, int month, int day, int hour)
+    {
+        WriteCsv($"Date,Value\n{input},1\n");
+
+        await CreateSut().ProcessDatasetAsync(DatasetId);
+
+        var point = Assert.Single(_writtenPoints);
+        // Kind'a değil DEĞERE bakıyoruz: kayma bug'ı Kind'ı doğru (Utc) bırakıp saati 3 saat kaydırıyordu.
+        Assert.Equal(new DateTime(year, month, day, hour, 0, 0, DateTimeKind.Utc), point.Timestamp);
+        Assert.Equal(DateTimeKind.Utc, point.Timestamp.Kind);
     }
 
     // ---------- İdempotency ----------
@@ -303,6 +341,24 @@ public class DataProcessingServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ProcessDatasetAsync_RowWithMissingField_CountedAsSkipped()
+    {
+        // Kolon sayısı eksik (kısa) satırlar exception fırlatmamalı, atlanan satır sayılmalı.
+        WriteCsv("""
+            Date,Value
+            2024-01-01,1
+            2024-01-02
+            2024-01-03,3
+            """);
+
+        var result = await CreateSut().ProcessDatasetAsync(DatasetId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, _writtenPoints.Count);
+        Assert.Equal(1, _dataset.SkippedRowCount);
+    }
+
+    [Fact]
     public async Task ProcessDatasetAsync_SomeRowsMalformed_StartAndEndDatesIgnoreSkippedRows()
     {
         // Değeri bozuk olan satırın (2023-12-31) tarihi geçerli olsa bile aralığa dahil edilmemeli.
@@ -386,6 +442,47 @@ public class DataProcessingServiceTests : IDisposable
             _dataPointRepository.BulkCopyDataPointsAsync(Arg.Any<IEnumerable<DataPoint>>(), Arg.Any<CancellationToken>());
             _dataPointRepository.BulkCopyDataPointsAsync(Arg.Any<IEnumerable<DataPoint>>(), Arg.Any<CancellationToken>());
         });
+    }
+
+    // ---------- Altyapı hataları ve iptal ----------
+
+    [Fact]
+    public async Task ProcessDatasetAsync_BulkCopyFails_FailsJobWithoutCountingRowsAsSkipped()
+    {
+        _dataPointRepository
+            .BulkCopyDataPointsAsync(Arg.Any<IEnumerable<DataPoint>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new InvalidOperationException("DB bağlantısı koptu")));
+        WriteCsv(GenerateCsv(rowCount: 5));
+
+        var result = await CreateSut(chunkSize: 2).ProcessDatasetAsync(DatasetId);
+
+        Assert.Equal(ResultErrorType.Unexpected, result.ErrorType);
+        Assert.Equal(ProcessingStatus.Failed, _dataset.Status);
+        Assert.False(_dataset.IsProcessed);
+        // Altyapı hatası "bozuk satır" değildir.
+        Assert.Null(_dataset.SkippedRowCount);
+        // İlk flush hatası anında yukarı fırlamalı. Eski kodda hata yutuluyor, liste chunk boyutunu aşıp
+        // büyümeye devam ediyor ve döngü sonunda ikinci kez deneniyordu (Received(2)).
+        await _dataPointRepository.Received(1).BulkCopyDataPointsAsync(Arg.Any<IEnumerable<DataPoint>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ProcessDatasetAsync_Cancelled_ThrowsAndDoesNotCompleteDataset()
+    {
+        WriteCsv(GenerateCsv(rowCount: 5));
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // İptal yutulmamalı: yeniden fırlatılmazsa Hangfire job'ı "başarılı" sayar.
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => CreateSut().ProcessDatasetAsync(DatasetId, cts.Token));
+
+        Assert.NotEqual(ProcessingStatus.Completed, _dataset.Status);
+        Assert.False(_dataset.IsProcessed);
+        Assert.Null(_dataset.SkippedRowCount);
+        // Son durum iptal edilmiş token'la değil CancellationToken.None ile kaydedilmeli; aksi halde gerçek
+        // EF Core'da kayıt hiç yapılmaz ve dataset "Processing"de asılı kalır.
+        await _unitOfWork.Received().SaveChangesAsync(CancellationToken.None);
     }
 
     // ---------- Diğer hata yolları ----------

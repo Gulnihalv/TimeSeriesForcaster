@@ -24,8 +24,8 @@ public class DataPointRepository : IDataPointRepository
 
     public async Task<DataPoint?> GetDataPointByIdAsync(int id, bool trackChanges)
     {
-        IQueryable<DataPoint> query = trackChanges 
-            ? _context.DataPoints 
+        IQueryable<DataPoint> query = trackChanges
+            ? _context.DataPoints
             : _context.DataPoints.AsNoTracking();
 
         return await query.FirstOrDefaultAsync(d => d.Id == id);
@@ -94,6 +94,7 @@ public class DataPointRepository : IDataPointRepository
             .AsNoTracking()
             .ToListAsync(cancellationToken);
     }
+
     public async Task<IEnumerable<DataPoint>> GetDataPointsPagedAsync(int datasetId, int page, int pageSize)
     {
         return await _context.DataPoints
@@ -104,6 +105,7 @@ public class DataPointRepository : IDataPointRepository
             .Take(pageSize)
             .ToListAsync();
     }
+
     public async Task<IEnumerable<DataPoint>> GetOutliersAsync(int datasetId)
     {
         return await _context.DataPoints
@@ -112,6 +114,7 @@ public class DataPointRepository : IDataPointRepository
             .OrderBy(d => d.Timestamp)
             .ToListAsync();
     }
+
     public Task<int> GetDataPointsCountAsync(int datasetId) => _context.DataPoints.CountAsync(d => d.DatasetId == datasetId);
 
     public async Task RemoveDataPointsForDatasetAsync(int datasetId, CancellationToken cancellationToken = default)
@@ -134,7 +137,7 @@ public class DataPointRepository : IDataPointRepository
         try
         {
             await using var writer = await conn.BeginBinaryImportAsync("COPY \"DataPoints\" (\"DatasetId\", \"Timestamp\", \"Value\", \"IsOutlier\", \"CreatedAt\") FROM STDIN (FORMAT BINARY)", cancellationToken);
-            
+
             foreach (var dataPoint in dataPoints)
             {
                 await writer.StartRowAsync(cancellationToken);
@@ -178,12 +181,14 @@ public class DataPointRepository : IDataPointRepository
 
         var mean = result.Mean ?? 0m;
         var stdDev = result.StdDev ?? 0m;
-        var coefficientOfVariation = mean != 0 ? stdDev / mean : 0m;
+        // Mutlak değer: negatif ortalamalı serilerde (ör. sıcaklık) katsayı negatif çıkmasın.
+        var coefficientOfVariation = mean != 0 ? stdDev / Math.Abs(mean) : 0m;
 
         return new DatasetStatistics
         {
-            Mean = (int?)mean,
-            Median = (int?)(result.Median ?? 0m),
+            // Önceden (int?) cast'i vardı; ortalama ve medyanı tam sayıya kırpıyordu (88,85 → 88).
+            Mean = mean,
+            Median = result.Median ?? 0m,
             StdDev = stdDev,
             Min = result.Min ?? 0m,
             Max = result.Max ?? 0m,
@@ -195,15 +200,7 @@ public class DataPointRepository : IDataPointRepository
 
     public async Task<IEnumerable<AggregatedPoint>> GetAggregatedDataPointsAsync(int datasetId, TimeResolution resolution, AggregationFunction aggregation, CancellationToken cancellationToken = default)
     {
-        var truncUnit = resolution switch
-        {
-            TimeResolution.Minute => "minute",
-            TimeResolution.Hour => "hour",
-            TimeResolution.Day => "day",
-            TimeResolution.Week => "week",
-            TimeResolution.Month => "month",
-            _ => throw new ArgumentOutOfRangeException(nameof(resolution), resolution, null)
-        };
+        var truncUnit = GetTruncUnit(resolution);
 
         var aggFunc = aggregation switch
         {
@@ -212,6 +209,8 @@ public class DataPointRepository : IDataPointRepository
             _ => throw new ArgumentOutOfRangeException(nameof(aggregation), aggregation, null)
         };
 
+        // truncUnit ve aggFunc yalnızca yukarıdaki switch'lerdeki sabit değerlerden gelebilir; kullanıcı girdisi
+        // SQL'e hiçbir zaman doğrudan girmez. datasetId ise parametre olarak geçiliyor.
         var sql = $@"
             SELECT
                 date_trunc('{truncUnit}', ""Timestamp"") AS ""Timestamp"",
@@ -222,45 +221,41 @@ public class DataPointRepository : IDataPointRepository
             ORDER BY ""Timestamp""
             ";
 
-        var result = await _context.Database
+        return await _context.Database
             .SqlQueryRaw<AggregatedPoint>(sql, datasetId)
             .ToListAsync(cancellationToken);
-
-        return result;
     }
 
-    public async Task<IEnumerable<int>> GetResolutionPointCountsAsync(int datasetId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyDictionary<TimeResolution, int>> GetResolutionPointCountsAsync(int datasetId, CancellationToken cancellationToken = default)
     {
-        var counts = new int[Enum.GetValues(typeof(TimeResolution)).Length];
-        counts[(int)TimeResolution.Raw] = await GetDataPointsCountAsync(datasetId);
-
-        var aggregatableResolutions = new[] { TimeResolution.Minute, TimeResolution.Hour, TimeResolution.Day, TimeResolution.Week, TimeResolution.Month };
-
-        foreach (var resolution in aggregatableResolutions)
+        var counts = new Dictionary<TimeResolution, int>
         {
-            var truncUnit = resolution switch
-            {
-                TimeResolution.Minute => "minute",
-                TimeResolution.Hour => "hour",
-                TimeResolution.Day => "day",
-                TimeResolution.Week => "week",
-                TimeResolution.Month => "month",
-                _ => throw new ArgumentOutOfRangeException(nameof(resolution), resolution, null)
-            };
+            [TimeResolution.Raw] = await _context.DataPoints.CountAsync(d => d.DatasetId == datasetId, cancellationToken)
+        };
 
+        foreach (var resolution in Enum.GetValues<TimeResolution>().Where(r => r != TimeResolution.Raw))
+        {
             var sql = $@"
-                SELECT COUNT(DISTINCT date_trunc('{truncUnit}', ""Timestamp"")) AS ""Value""
+                SELECT COUNT(DISTINCT date_trunc('{GetTruncUnit(resolution)}', ""Timestamp"")) AS ""Value""
                 FROM ""DataPoints""
                 WHERE ""DatasetId"" = {{0}}
             ";
 
-            var count = await _context.Database
+            counts[resolution] = await _context.Database
                 .SqlQueryRaw<int>(sql, datasetId)
                 .FirstOrDefaultAsync(cancellationToken);
-
-            counts[(int)resolution] = count;
         }
 
         return counts;
     }
+
+    private static string GetTruncUnit(TimeResolution resolution) => resolution switch
+    {
+        TimeResolution.Minute => "minute",
+        TimeResolution.Hour => "hour",
+        TimeResolution.Day => "day",
+        TimeResolution.Week => "week",
+        TimeResolution.Month => "month",
+        _ => throw new ArgumentOutOfRangeException(nameof(resolution), resolution, "Bu çözünürlük için date_trunc birimi tanımlı değil.")
+    };
 }
