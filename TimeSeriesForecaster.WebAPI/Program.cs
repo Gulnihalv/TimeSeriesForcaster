@@ -10,7 +10,6 @@ using TimeSeriesForecaster.Infrastructure.Persistence;
 using TimeSeriesForecaster.WebAPI.Extensions;
 using TimeSeriesForecaster.WebAPI.Middleware;
 using Serilog;
-using Serilog.Events;
 
 Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
 
@@ -20,12 +19,19 @@ try
 
     // CORS politikası
     var reactAppPolicy = "AllowReactApp";
+
+    var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+    if (allowedOrigins == null || allowedOrigins.Length == 0)
+    {
+        throw new InvalidOperationException("CORS yapılandırması eksik. 'Cors:AllowedOrigins' ayarını kontrol edin.");
+    }
+
     builder.Services.AddCors(options =>
     {
         options.AddPolicy(name: reactAppPolicy,
                           policy =>
                           {
-                              policy.WithOrigins("http://localhost:5173")
+                              policy.WithOrigins(allowedOrigins)
                                     .AllowAnyHeader()
                                     .AllowAnyMethod();
                           });
@@ -113,12 +119,19 @@ try
     {
         app.UseSwagger();
         app.UseSwaggerUI();
+
+        app.UseHangfireDashboard("/hangfire", new DashboardOptions
+        {
+            Authorization = new[] { new DashboardAuthorizationFilter() }
+        });
     }
 
     app.UseSerilogRequestLogging();
-    app.UseHttpsRedirection();
+    if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") != "true")
+    {
+        app.UseHttpsRedirection();
+    }
     app.UseCors(reactAppPolicy);
-    app.UseHangfireDashboard("/hangfire");
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
