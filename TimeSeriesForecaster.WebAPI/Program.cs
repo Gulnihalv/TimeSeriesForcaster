@@ -118,6 +118,15 @@ try
     var app = builder.Build();
     app.UseExceptionHandler();
 
+    if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+    {
+        using (var scope = app.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await dbContext.Database.MigrateAsync();
+        }
+    }
+
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
