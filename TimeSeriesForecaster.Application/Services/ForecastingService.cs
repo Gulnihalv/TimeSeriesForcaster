@@ -83,7 +83,7 @@ public class ForecastingService : IForecastingService
                     throw new Exception(ErrorMessages.ForecastGenerationFailed);
                 }
 
-                List<Prediction> newPredictions;
+                List<(DateTime Date, decimal Value, decimal Lower, decimal Upper)> forecastPoints;
                 try
                 {
                     var responseBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
@@ -98,30 +98,39 @@ public class ForecastingService : IForecastingService
                         throw new Exception(ErrorMessages.InvalidForecastResponse);
                     }
 
-                    var createdAt = DateTime.UtcNow;
-                    newPredictions = predictResult.Predictions.Select(p => new Prediction
-                    {
-                        ModelId = modelId,
-                        PredictionDate = DateTime.SpecifyKind(DateTime.Parse(p.Ds), DateTimeKind.Utc),
-                        PredictedValue = (decimal)p.Yhat,
-                        ConfidenceLower = (decimal)p.YhatLower,
-                        ConfidenceUpper = (decimal)p.YhatUpper,
-                        ActualValue = null, // gelecek tarihli tahmin, henüz gerçekleşmedi
-                        IsAnomaly = false,
-                        CreatedAt = createdAt
-                    }).ToList();
+                    forecastPoints = predictResult.Predictions.Select(p => (
+                        Date: DateTime.SpecifyKind(DateTime.Parse(p.Ds), DateTimeKind.Utc),
+                        Value: (decimal)p.Yhat,
+                        Lower: (decimal)p.YhatLower,
+                        Upper: (decimal)p.YhatUpper)).ToList();
                 }
                 catch (Exception ex) when (ex is JsonException or FormatException)
                 {
                     throw new Exception(ErrorMessages.InvalidForecastResponse, ex);
                 }
 
-                await _unitOfWork.ExecuteInTransactionAsync(async () =>
+                var createdAt = DateTime.UtcNow;
+
+                var predictionCount = await _unitOfWork.ExecuteInTransactionAsync(async () =>
                 {
+                    // Retry'da blok baştan çalışır; entity'ler her denemede taze üretilmeli,
+                    // aksi halde önceki denemeden kalan takip durumu/Id'lerle çakışırlar.
+                    var newPredictions = forecastPoints.Select(p => new Prediction
+                    {
+                        ModelId = modelId,
+                        PredictionDate = p.Date,
+                        PredictedValue = p.Value,
+                        ConfidenceLower = p.Lower,
+                        ConfidenceUpper = p.Upper,
+                        ActualValue = null, // gelecek tarihli tahmin, henüz gerçekleşmedi
+                        IsAnomaly = false,
+                        CreatedAt = createdAt
+                    }).ToList();
+
                     await _predictionRepository.RemovePredictionsForModelAsync(modelId);
                     await _predictionRepository.CreatePredictionsBulkAsync(newPredictions);
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
-                    return true;
+                    return newPredictions.Count;
                 }, cancellationToken);
 
                 model.ForecastStatus = ForecastStatus.Completed;
@@ -129,47 +138,73 @@ public class ForecastingService : IForecastingService
                 model.ForecastProgressPercentage = 100;
                 model.ForecastErrorMessage = null;
 
-                _logger.LogInformation("Forecast generation completed successfully. Total predictions: {PredictionCount}", newPredictions.Count);
+                // Simülasyon durdurulmadan kaydedersek yüzdeyi 100'ün altına geri yazabilir.
+                await StopProgressSimulationAsync(progressCts, progressTask, modelId);
+                await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+                _logger.LogInformation("Forecast generation completed successfully. Total predictions: {PredictionCount}", predictionCount);
                 return Result.Success();
             }
             catch (OperationCanceledException)
             {
-                model.ForecastStatus = ForecastStatus.Cancelled;
-                model.ForecastErrorMessage = "Tahmin oluşturma iptal edildi.";
-                model.ForecastCompletedAt = DateTime.UtcNow;
+                await StopProgressSimulationAsync(progressCts, progressTask, modelId);
+                await PersistTerminalStateAsync(modelId, ForecastStatus.Cancelled, "Tahmin oluşturma iptal edildi.", progressPercentage: null);
                 throw;
             }
             catch (Exception ex)
             {
-                model.ForecastStatus = ForecastStatus.Failed;
-                model.ForecastErrorMessage = ex.Message;
-                model.ForecastCompletedAt = DateTime.UtcNow;
-                model.ForecastProgressPercentage = 100;
                 _logger.LogError(ex, "Forecast generation failed.");
+                await StopProgressSimulationAsync(progressCts, progressTask, modelId);
+                await PersistTerminalStateAsync(modelId, ForecastStatus.Failed, ex.Message, progressPercentage: 100);
                 return Result.Failure(ResultErrorType.InternalServerError, ex.Message);
             }
             finally
             {
-                progressCts.Cancel();
-                try
-                {
-                    await progressTask;
-                }
-                catch (OperationCanceledException)
-                {
-                    // Beklenen durum: ana iş bitince simülasyon iptal edilir
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Forecast ilerleme simülasyonu beklenmedik şekilde sonlandı. ModelId: {ModelId}", modelId);
-
-                }
-
-                await _unitOfWork.SaveChangesAsync(CancellationToken.None); 
-
                 sw.Stop();
                 _logger.LogInformation("Forecast generation completed in {ElapsedMilliseconds} ms.", sw.ElapsedMilliseconds);
             }
+        }
+    }
+
+    // Başarısız bir SaveChanges'ten context'te 'Added' olarak kalan entity'ler sonraki kayıtla
+    // transaction dışında yazılmasın diye önce tracker temizlenir. Bu, takipteki model nesnesini de
+    // düşürdüğünden, terminal durum yeniden yüklenen modele yazılır.
+    private async Task PersistTerminalStateAsync(int modelId, ForecastStatus status, string errorMessage, int? progressPercentage)
+    {
+        _unitOfWork.DiscardPendingChanges();
+
+        var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: true);
+        if (model == null)
+        {
+            _logger.LogWarning("Model not found while persisting forecast state {Status} for ModelId: {ModelId}", status, modelId);
+            return;
+        }
+
+        model.ForecastStatus = status;
+        model.ForecastErrorMessage = errorMessage;
+        model.ForecastCompletedAt = DateTime.UtcNow;
+        if (progressPercentage.HasValue)
+        {
+            model.ForecastProgressPercentage = progressPercentage.Value;
+        }
+
+        await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+    }
+
+    private async Task StopProgressSimulationAsync(CancellationTokenSource progressCts, Task progressTask, int modelId)
+    {
+        progressCts.Cancel();
+        try
+        {
+            await progressTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // Beklenen durum: ana iş bitince simülasyon iptal edilir
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Forecast ilerleme simülasyonu beklenmedik şekilde sonlandı. ModelId: {ModelId}", modelId);
         }
     }
 

@@ -12,17 +12,17 @@ public class UnitOfWork : IUnitOfWork
 
     public async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> operation, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-        try
+        var strategy = _context.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async ct =>
         {
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+
             var result = await operation();
-            await transaction.CommitAsync(cancellationToken);
+            await transaction.CommitAsync(ct);
             return result;
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw; 
-        }
+        }, cancellationToken);
     }
+
+    public void DiscardPendingChanges() => _context.ChangeTracker.Clear();
 }

@@ -155,48 +155,97 @@ public class ModelProcessingService : IModelProcessingService
                     await _modelMetricRepository.CreateMetricsAsync(metricEntities);
                 }
 
-                await NotifyModelResultAsync(model, success: true);
+                // Simülasyon durdurulmadan kaydedersek yüzdeyi 100'ün altına geri yazabilir.
+                await StopProgressSimulationAsync(progressCts, progressTask, modelId);
+
+                // Model alanları ve metrikler aynı context'te; tek SaveChanges ile atomik yazılırlar.
+                await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+                await TryNotifyModelResultAsync(model, success: true);
+
+                return Result.Success();
             }
             catch (OperationCanceledException)
             {
-                model.Status = ModelStatus.Cancelled;
-                model.ErrorMessage = "Model eğitimi iptal edildi.";
-                await NotifyModelResultAsync(model, success: false);
+                await StopProgressSimulationAsync(progressCts, progressTask, modelId);
+                // Bildirim bilerek gönderilmiyor: graceful shutdown'da iptal edilen job açılışta yeniden
+                // çalışır; kullanıcıya önce "başarısız", sonra "başarılı" demek kafa karıştırır.
+                await PersistTerminalStateAsync(modelId, ModelStatus.Cancelled, "Model eğitimi iptal edildi.", progressPercentage: null);
                 throw;
             }
             catch (Exception ex)
             {
-                model.Status = ModelStatus.Failed;
-                model.ErrorMessage = ex.Message;
-
-                model.ProgressPercentage = 100;
-                await NotifyModelResultAsync(model, success: false);
-
                 _logger.LogError(ex, "Model training failed.");
-                return Result.Failure(ResultErrorType.Unexpected, model.ErrorMessage);
+                await StopProgressSimulationAsync(progressCts, progressTask, modelId);
+                var failedModel = await PersistTerminalStateAsync(modelId, ModelStatus.Failed, ex.Message, progressPercentage: 100);
+                if (failedModel != null) await TryNotifyModelResultAsync(failedModel, success: false);
+                return Result.Failure(ResultErrorType.Unexpected, ex.Message);
             }
             finally
             {
-                progressCts.Cancel();
-                try
-                {
-                    await progressTask;
-                }
-                catch (OperationCanceledException)
-                {
-                    // Beklenen durum: ana iş bitince simülasyon iptal edilir
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Model ilerleme simülasyonu beklenmedik şekilde sonlandı. ModelId: {ModelId}", modelId);
-                }
-                await _unitOfWork.SaveChangesAsync(CancellationToken.None); 
+                sw.Stop();
+                _logger.LogInformation("Model processing completed in {ElapsedMilliseconds} ms.", sw.ElapsedMilliseconds);
             }
-            sw.Stop();
-            _logger.LogInformation("Model processing completed in {ElapsedMilliseconds} ms.", sw.ElapsedMilliseconds);
+        }
+    }
 
-            return Result.Success();
-        }   
+    // Başarısız bir SaveChanges'ten context'te 'Added' olarak kalan entity'ler (ör. metrikler) sonraki
+    // kayıtla yazılmasın diye önce tracker temizlenir. Bu, takipteki model nesnesini de düşürdüğünden,
+    // terminal durum yeniden yüklenen modele yazılır.
+    private async Task<Model?> PersistTerminalStateAsync(int modelId, ModelStatus status, string errorMessage, int? progressPercentage)
+    {
+        _unitOfWork.DiscardPendingChanges();
+
+        var model = await _modelRepository.GetModelByIdAsync(id: modelId, trackChanges: true);
+        if (model == null)
+        {
+            _logger.LogWarning("Model not found while persisting training state {Status} for ModelId: {ModelId}", status, modelId);
+            return null;
+        }
+
+        model.Status = status;
+        model.ErrorMessage = errorMessage;
+        if (progressPercentage.HasValue)
+        {
+            model.ProgressPercentage = progressPercentage.Value;
+        }
+
+        await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+        return model;
+    }
+
+    private async Task StopProgressSimulationAsync(CancellationTokenSource progressCts, Task progressTask, int modelId)
+    {
+        progressCts.Cancel();
+        try
+        {
+            await progressTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // Beklenen durum: ana iş bitince simülasyon iptal edilir
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Model ilerleme simülasyonu beklenmedik şekilde sonlandı. ModelId: {ModelId}", modelId);
+        }
+    }
+
+    // Bildirim best-effort: durum zaten kaydedildikten sonra bildirim hatası, eğitimin sonucunu değiştirmemeli.
+    private async Task TryNotifyModelResultAsync(Model model, bool success)
+    {
+        try
+        {
+            var notifyResult = await NotifyModelResultAsync(model, success);
+            if (!notifyResult.IsSuccess)
+            {
+                _logger.LogWarning("Bildirim gönderilemedi: {Error}", notifyResult.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Model sonuç bildirimi oluşturulamadı. ModelId: {ModelId}", model.Id);
+        }
     }
 
     private async Task SimulateTrainingProgressAsync(int modelId, CancellationToken ct)

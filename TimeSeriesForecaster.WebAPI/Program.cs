@@ -10,6 +10,7 @@ using TimeSeriesForecaster.Infrastructure.Persistence;
 using TimeSeriesForecaster.WebAPI.Extensions;
 using TimeSeriesForecaster.WebAPI.Middleware;
 using Serilog;
+using TimeSeriesForecaster.WebAPI.Filters;
 
 Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
 
@@ -43,7 +44,9 @@ try
 
     // DbContext kaydı
     builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+        options.UseNpgsql(
+            builder.Configuration.GetConnectionString("DefaultConnection"),
+            npgsql => npgsql.EnableRetryOnFailure()));
 
     builder.Services.AddIdentity<AppUser, IdentityRole<int>>(options =>
         {
@@ -122,7 +125,7 @@ try
 
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {
-            Authorization = new[] { new DashboardAuthorizationFilter() }
+            Authorization = new[] { new AllowAllDashboardAuthorizationFilter() }
         });
     }
 
