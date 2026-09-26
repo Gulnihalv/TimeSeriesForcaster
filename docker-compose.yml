@@ -1,0 +1,57 @@
+services:
+  # Servis 1: Veritabanı
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5433:5432" # Mac portu 5433, Container portu 5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # Veritabanının bağlantı kabul edip etmediğini test eder
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Servis 2: Makine Öğrenmesi Servisi
+  ml-service:
+    build: ./ml-service # ./ml-service klasöründeki Dockerfile'ı kullanır
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ml-models:/app/models
+
+  # Servis 3: .NET API
+  api:
+    build: . # Kök dizindeki Dockerfile'ı kullanır
+    restart: unless-stopped
+    ports:
+      - "5131:8080" # Senin makinen: 5131, Container: 8080
+    depends_on:
+      postgres:
+        condition: service_healthy # Postgres ayağa kalkıp healthcheck'i geçene kadar API başlamaz
+      ml-service:
+        condition: service_started # ml-service'in çalışmaya başlaması yeterli
+    volumes:
+      - api-uploads:/app/uploads
+      - api-logs:/app/logs
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - MlService__BaseUrl=http://ml-service:8000/
+      - JwtSettings__Secret=${JWT_SECRET}
+      - Cors__AllowedOrigins__0=http://localhost:3000
+      - Database__MigrateOnStartup=true
+
+# Tüm servislerin ortak kullanacağı kalıcı depolama alanları
+volumes:
+  postgres-data:
+  ml-models:
+  api-uploads:
+  api-logs:
