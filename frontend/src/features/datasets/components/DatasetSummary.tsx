@@ -35,8 +35,83 @@ const formatMonthYear = (value: string | null) => {
 const formatNumber = (value: number) =>
   value.toLocaleString('tr-TR', { maximumFractionDigits: 2 });
 
-const DatasetSummary: FC<DatasetSummaryProps> = ({ datasetId, onLoaded}) => {
-  const { data: dataset, error } = useApiData<Dataset>(
+interface DatasetStatisticsSectionProps {
+  datasetId: number;
+}
+
+/**
+ * Sadece dataset işlendikten sonra mount edilir; böylece isLoading ilk render'dan itibaren
+ * doğru (true) başlar ve "hesaplanamadı" gibi ara durumlar görünmez.
+ */
+const DatasetStatisticsSection: FC<DatasetStatisticsSectionProps> = ({ datasetId }) => {
+  const { data: statistics, isLoading } = useApiData<DatasetStatistics>(
+    () => getDatasetStatistics(datasetId),
+    [datasetId],
+    { fallbackErrorMessage: 'İstatistikler yüklenemedi.' }
+  );
+
+  return (
+    <div className={styles.statisticsSection}>
+      {isLoading ? (
+        <Spinner label="İstatistikler hesaplanıyor..." />
+      ) : statistics ? (
+        <div className={styles.statGrid}>
+          <div className={styles.statChip}>
+            <div className={styles.statChipHeader}>
+              <span className={styles.statLabel}>Ortalama</span>
+              <LuSigma size={14} className={styles.statIcon} />
+            </div>
+            <span className={styles.statValue}>{formatNumber(statistics.mean)}</span>
+          </div>
+          <div className={styles.statChip}>
+            <div className={styles.statChipHeader}>
+              <span className={styles.statLabel}>Medyan</span>
+              <LuChartBar size={14} className={styles.statIcon} />
+            </div>
+            <span className={styles.statValue}>{formatNumber(statistics.median)}</span>
+          </div>
+          <div className={styles.statChip}>
+            <div className={styles.statChipHeader}>
+              <span className={styles.statLabel}>Std. sapma</span>
+              <LuActivity size={14} className={styles.statIcon} />
+            </div>
+            <span className={styles.statValue}>{formatNumber(statistics.stdDev)}</span>
+          </div>
+          <div className={styles.statChip}>
+            <div className={styles.statChipHeader}>
+              <span className={styles.statLabel}>Değişkenlik</span>
+              <LuWaves size={14} className={styles.statIcon} />
+            </div>
+            <span className={styles.statValue}>{describeVariability(statistics.coefficientOfVariation)}</span>
+          </div>
+          <div className={styles.statChip}>
+            <div className={styles.statChipHeader}>
+              <span className={styles.statLabel}>Min</span>
+              <LuArrowDownToLine size={14} className={styles.statIcon} />
+            </div>
+            <span className={styles.statValue}>
+              {formatNumber(statistics.min)} <small className={styles.statSub}>({formatDate(statistics.minDate)})</small>
+            </span>
+          </div>
+          <div className={styles.statChip}>
+            <div className={styles.statChipHeader}>
+              <span className={styles.statLabel}>Max</span>
+              <LuArrowUpToLine size={14} className={styles.statIcon} />
+            </div>
+            <span className={styles.statValue}>
+              {formatNumber(statistics.max)} <small className={styles.statSub}>({formatDate(statistics.maxDate)})</small>
+            </span>
+          </div>
+        </div>
+      ) : (
+        <p className={styles.statisticsEmpty}>İstatistik hesaplanamadı.</p>
+      )}
+    </div>
+  );
+};
+
+const DatasetSummary: FC<DatasetSummaryProps> = ({ datasetId, onLoaded }) => {
+  const { data: dataset, isLoading, error } = useApiData<Dataset>(
     () => getDatasetById(datasetId),
     [datasetId],
     {
@@ -45,20 +120,11 @@ const DatasetSummary: FC<DatasetSummaryProps> = ({ datasetId, onLoaded}) => {
     }
   );
 
-  const { data: statistics, isLoading: statisticsLoading } = useApiData<DatasetStatistics | null>(
-    () => (dataset?.isProcessed ? getDatasetStatistics(datasetId) : Promise.resolve(null)),
-    [datasetId, dataset?.isProcessed],
-    {
-      fallbackErrorMessage: 'İstatistikler yüklenemedi.',
-    }
-  );
-  
-
   useEffect(() => {
     if (dataset && onLoaded) onLoaded(dataset);
   }, [dataset, onLoaded]);
 
-  if (statisticsLoading) return <p className={styles.loading}>İstatistikler hesaplanıyor...</p>;
+  if (isLoading && !dataset) return <p className={styles.loading}>Dataset yükleniyor...</p>;
   if (error || !dataset) return <div className={styles.error}>{error || 'Dataset bulunamadı.'}</div>;
 
   return (
@@ -104,62 +170,7 @@ const DatasetSummary: FC<DatasetSummaryProps> = ({ datasetId, onLoaded}) => {
       </div>
 
       {dataset.isProcessed && !dataset.errorMessage && (
-        <div className={styles.statisticsSection}>
-          {statisticsLoading ? (
-            <Spinner label="İstatistikler hesaplanıyor..." />
-          ) : statistics ? (
-            <div className={styles.statGrid}>
-              <div className={styles.statChip}>
-                <div className={styles.statChipHeader}>
-                  <span className={styles.statLabel}>Ortalama</span>
-                  <LuSigma size={14} className={styles.statIcon} />
-                </div>
-                <span className={styles.statValue}>{formatNumber(statistics.mean)}</span>
-              </div>
-              <div className={styles.statChip}>
-                <div className={styles.statChipHeader}>
-                  <span className={styles.statLabel}>Medyan</span>
-                  <LuChartBar size={14} className={styles.statIcon} />
-                </div>
-                <span className={styles.statValue}>{formatNumber(statistics.median)}</span>
-              </div>
-              <div className={styles.statChip}>
-                <div className={styles.statChipHeader}>
-                  <span className={styles.statLabel}>Std. sapma</span>
-                  <LuActivity size={14} className={styles.statIcon} />
-                </div>
-                <span className={styles.statValue}>{formatNumber(statistics.stdDev)}</span>
-              </div>
-              <div className={styles.statChip}>
-                <div className={styles.statChipHeader}>
-                  <span className={styles.statLabel}>Değişkenlik</span>
-                  <LuWaves size={14} className={styles.statIcon} />
-                </div>
-                <span className={styles.statValue}>{describeVariability(statistics.coefficientOfVariation)}</span>
-              </div>
-              <div className={styles.statChip}>
-                <div className={styles.statChipHeader}>
-                  <span className={styles.statLabel}>Min</span>
-                  <LuArrowDownToLine size={14} className={styles.statIcon} />
-                </div>
-                <span className={styles.statValue}>
-                  {formatNumber(statistics.min)} <small className={styles.statSub}>({formatDate(statistics.minDate)})</small>
-                </span>
-              </div>
-              <div className={styles.statChip}>
-                <div className={styles.statChipHeader}>
-                  <span className={styles.statLabel}>Max</span>
-                  <LuArrowUpToLine size={14} className={styles.statIcon} />
-                </div>
-                <span className={styles.statValue}>
-                  {formatNumber(statistics.max)} <small className={styles.statSub}>({formatDate(statistics.maxDate)})</small>
-                </span>
-              </div>
-            </div>
-          ) : (
-            <p className={styles.statisticsEmpty}>İstatistik hesaplanamadı.</p>
-          )}
-        </div>
+        <DatasetStatisticsSection datasetId={datasetId} />
       )}
     </>
   );
