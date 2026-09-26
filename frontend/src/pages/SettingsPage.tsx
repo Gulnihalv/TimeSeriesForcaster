@@ -1,28 +1,28 @@
 import Card from '../components/Card/Card';
 import { useAuthStore } from '../store/authStore';
-import { LuBellRing, LuPalette, LuShieldCheck } from 'react-icons/lu';
+// import { LuBellRing, LuPalette, LuShieldCheck } from 'react-icons/lu';
 import styles from './SettingsPage.module.css';
 
-const UPCOMING_SECTIONS = [
-  {
-    icon: LuBellRing,
-    tone: 'blue' as const,
-    title: 'Bildirimler',
-    description: 'Model eğitimi bittiğinde veya bir dataset hata verdiğinde e-posta/push bildirimi al.',
-  },
-  {
-    icon: LuPalette,
-    tone: 'violet' as const,
-    title: 'Görünüm',
-    description: 'Koyu tema ve yoğunluk (kompakt/ferah) seçenekleri yakında burada olacak.',
-  },
-  {
-    icon: LuShieldCheck,
-    tone: 'green' as const,
-    title: 'Güvenlik',
-    description: 'Şifre değiştirme, iki adımlı doğrulama ve aktif oturumların listesi.',
-  },
-];
+// const UPCOMING_SECTIONS = [
+//   {
+//     icon: LuBellRing,
+//     tone: 'blue' as const,
+//     title: 'Bildirimler',
+//     description: 'Model eğitimi bittiğinde veya bir dataset hata verdiğinde e-posta/push bildirimi al.',
+//   },
+//   {
+//     icon: LuPalette,
+//     tone: 'violet' as const,
+//     title: 'Görünüm',
+//     description: 'Koyu tema ve yoğunluk (kompakt/ferah) seçenekleri yakında burada olacak.',
+//   },
+//   {
+//     icon: LuShieldCheck,
+//     tone: 'green' as const,
+//     title: 'Güvenlik',
+//     description: 'Şifre değiştirme, iki adımlı doğrulama ve aktif oturumların listesi.',
+//   },
+// ];
 
 const SettingsPage = () => {
   const user = useAuthStore((state) => state.user);

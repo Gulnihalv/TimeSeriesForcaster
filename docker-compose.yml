@@ -49,6 +49,18 @@ services:
       - Cors__AllowedOrigins__0=http://localhost:3000
       - Database__MigrateOnStartup=true
 
+  # Servis 4: Frontend (Vite + nginx)
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /api
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
 # Tüm servislerin ortak kullanacağı kalıcı depolama alanları
 volumes:
   postgres-data:

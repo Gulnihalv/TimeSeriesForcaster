@@ -1,0 +1,28 @@
+# Bağımlılıklar (imaj içinde npm ci ile kurulur)
+node_modules
+
+# Build çıktısı (imaj içinde npm run build ile üretilir)
+dist
+
+# Ortam değişkenleri (VITE_API_URL build ARG ile verilir)
+.env
+.env.*
+
+# Loglar
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Git / IDE / OS
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# Docker dosyaları (build context'e gerek yok)
+Dockerfile
+.dockerignore
+
+# Dokümantasyon
+README.md
