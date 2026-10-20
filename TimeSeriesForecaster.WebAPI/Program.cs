@@ -89,6 +89,7 @@ try
     builder.Services.AddApplicationServices();
     builder.Services.AddInfrastructureServices();
     builder.Services.AddExternalServiceClients(builder.Configuration);
+    builder.Services.AddRedisCache(builder.Configuration);
 
     // Controller ve Swagger servisleri
     builder.Services.AddControllers();

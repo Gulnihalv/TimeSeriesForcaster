@@ -1,9 +1,11 @@
 using Hangfire;
 using Hangfire.PostgreSql;
+using Microsoft.Extensions.Caching.Hybrid;
 using TimeSeriesForecaster.Application.Configuration;
 using TimeSeriesForecaster.Application.Contracts.Application;
 using TimeSeriesForecaster.Application.Contracts.Persistence;
 using TimeSeriesForecaster.Application.Services;
+using TimeSeriesForecaster.Infrastructure.Caching;
 using TimeSeriesForecaster.Infrastructure.Persistence;
 using TimeSeriesForecaster.Infrastructure.Repositories;
 
@@ -47,6 +49,7 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<IModelMetricRepository, ModelMetricRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IDashboardDismissalRepository, DashboardDismissalRepository>();
+        services.AddScoped<ICacheService, CacheService>();
 
         return services;
     }
@@ -82,6 +85,31 @@ public static class ServiceRegistrationExtensions
         {
             client.BaseAddress = new Uri(mlServiceSettings.BaseUrl);
             client.Timeout = TimeSpan.FromMinutes(mlServiceSettings.TimeoutForecastingMinutes);
+        });
+
+        return services;
+    }
+
+    public static IServiceCollection AddRedisCache(this IServiceCollection services, IConfiguration configuration)
+    {
+        var redisConnectionString = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrEmpty(redisConnectionString))
+        {
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnectionString;
+            });
+        }
+
+        services.AddHybridCache(options =>
+        {
+            options.DefaultEntryOptions = new HybridCacheEntryOptions
+            {
+                Expiration = TimeSpan.FromMinutes(30),       // Redis (L2) üzerinde ne kadar tutulacak?
+                LocalCacheExpiration = TimeSpan.FromMinutes(5) // RAM (L1) üzerinde ne kadar tutulacak?
+            };
+            
+            options.MaximumPayloadBytes = 4 * 1024 * 1024;
         });
 
         return services;

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TimeSeriesForecaster.Application.Contracts.Application;
+// Namespace'in tamamı alınmıyor: Application.Common.ErrorMessages, WebAPI.Constants.ErrorMessages ile çakışır.
+using CacheKeys = TimeSeriesForecaster.Application.Common.CacheKeys;
 using TimeSeriesForecaster.WebAPI.Constants;
 using TimeSeriesForecaster.WebAPI.Extensions;
 
@@ -73,7 +75,7 @@ public class DatasetsController : ApiControllerBase
     }
 
     [HttpGet("{id}/datapoints")]
-    public async Task<IActionResult> GetDataPoints(int id, [FromQuery] int maxPoints = 2000)
+    public async Task<IActionResult> GetDataPoints(int id, [FromQuery] int maxPoints = CacheKeys.DefaultDataPointLimit)
     {
         var userId = User.GetUserId();
         if (userId == null)

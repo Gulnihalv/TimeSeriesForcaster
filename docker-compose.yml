@@ -38,6 +38,8 @@ services:
         condition: service_healthy # Postgres ayağa kalkıp healthcheck'i geçene kadar API başlamaz
       ml-service:
         condition: service_started # ml-service'in çalışmaya başlaması yeterli
+      redis:
+        condition: service_healthy # Redis PING'e cevap verene kadar API başlamaz
     volumes:
       - api-uploads:/app/uploads
       - api-logs:/app/logs
@@ -48,6 +50,9 @@ services:
       - JwtSettings__Secret=${JWT_SECRET}
       - Cors__AllowedOrigins__0=http://localhost:3000
       - Database__MigrateOnStartup=true
+      # Kısa zaman aşımları: Redis erişilemezken her cache işlemi ~6 sn yerine ~2 sn bekler (ölçüldü).
+      # Container'lar arası sağlıklı Redis 1-2 ms'de cevap verdiği için 1 sn yeterli tolerans.
+      - ConnectionStrings__Redis=redis:6379,abortConnect=false,connectTimeout=1000,syncTimeout=1000,connectRetry=1
 
   # Servis 4: Frontend (Vite + nginx)
   frontend:
@@ -60,6 +65,18 @@ services:
       - "3000:80"
     depends_on:
       - api
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 # Tüm servislerin ortak kullanacağı kalıcı depolama alanları
 volumes:

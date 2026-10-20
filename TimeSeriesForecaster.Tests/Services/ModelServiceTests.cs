@@ -26,6 +26,7 @@ public class ModelServiceTests
     private readonly IMapper _mapper = Substitute.For<IMapper>();
     private readonly IBackgroundJobClient _backgroundJobClient = Substitute.For<IBackgroundJobClient>();
     private readonly IHttpClientFactory _httpClientFactory = Substitute.For<IHttpClientFactory>();
+    private readonly ICacheService _cacheService = Substitute.For<ICacheService>();
 
     // Varsayılan dataset ham haliyle eğitilebilir boyutta. Çözünürlük gönderilmeyen testler
     // (ör. hiperparametre testleri) artık ham nokta sayısı (RecordCount) üzerinden doğrulamadan geçiyor.
@@ -35,7 +36,12 @@ public class ModelServiceTests
 
     public ModelServiceTests()
     {
-        _sut = new ModelService(_modelRepository, _datasetRepository, _dataPointRepository, _unitOfWork, _mapper, _backgroundJobClient, _httpClientFactory);
+        _sut = new ModelService(_modelRepository, _datasetRepository, _dataPointRepository, _unitOfWork, _mapper, _backgroundJobClient, _httpClientFactory, _cacheService);
+
+        // Mock varsayılan olarak default döner ve factory'yi hiç çalıştırmaz; testler gerçek kod yolunu
+        // atlamasın diye cache'i şeffaf yapıyoruz (her zaman factory çalışır, yani cache yokmuş gibi).
+        PassThroughCache<ModelComponentsDto?>();
+        PassThroughCache<Dictionary<TimeResolution, int>>();
 
         // Enqueue<T>() extension'ı sonunda IBackgroundJobClient.Create(Job, IState) çağırır ve job id bekler.
         _backgroundJobClient.Create(Arg.Any<Job>(), Arg.Any<IState>()).Returns("job-1");
@@ -355,6 +361,45 @@ public class ModelServiceTests
         await _dataPointRepository.DidNotReceiveWithAnyArgs().GetResolutionPointCountsAsync(default);
     }
 
+    [Fact]
+    public async Task GetResolutionOptionsAsync_UserDoesNotOwnDataset_DoesNotReadFromCache()
+    {
+        // Anahtarda kullanıcı kimliği yok; yetki kontrolü cache'ten önce yapılmazsa başkasının dataset'inin
+        // cache'lenmiş sayıları sızardı.
+        _datasetRepository.UserOwnsDatasetAsync(DatasetId, UserId).Returns(false);
+
+        await _sut.GetResolutionOptionsAsync(DatasetId, UserId);
+
+        Assert.DoesNotContain(_cacheService.ReceivedCalls(), c => c.GetMethodInfo().Name == nameof(ICacheService.GetOrCreateAsync));
+    }
+
+    [Fact]
+    public async Task GetResolutionOptionsAsync_UsesDatasetResolutionCountsCacheKey()
+    {
+        SetupOwnedDataset(pointCounts: PointCounts(day: 1_000));
+
+        await _sut.GetResolutionOptionsAsync(DatasetId, UserId);
+
+        await _cacheService.Received(1).GetOrCreateAsync(
+            CacheKeys.DatasetResolutionCounts(DatasetId),
+            Arg.Any<Func<CancellationToken, Task<Dictionary<TimeResolution, int>>>>(),
+            Arg.Any<TimeSpan?>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ---------- DeleteModelAsync: cache geçersiz kılma ----------
+
+    [Fact]
+    public async Task DeleteModelAsync_RemovesModelComponentsFromCache()
+    {
+        SetupOwnedModel(new Model { Id = ModelId, IsActive = true });
+
+        var result = await _sut.DeleteModelAsync(ModelId, UserId);
+
+        Assert.True(result.IsSuccess);
+        await _cacheService.Received(1).RemoveAsync(CacheKeys.ModelComponents(ModelId), Arg.Any<CancellationToken>());
+    }
+
     // ---------- GenerateForecastAsync: durum kontrolü ----------
 
     [Theory]
@@ -414,6 +459,17 @@ public class ModelServiceTests
     }
 
     // ---------- Yardımcılar ----------
+
+    // NSubstitute açık generic metodu tek seferde ayarlayamıyor; servisin cache'lediği her tip için ayrı çağrılmalı.
+    private void PassThroughCache<T>()
+    {
+        _cacheService.GetOrCreateAsync(
+                Arg.Any<string>(),
+                Arg.Any<Func<CancellationToken, Task<T>>>(),
+                Arg.Any<TimeSpan?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => call.Arg<Func<CancellationToken, Task<T>>>()(CancellationToken.None));
+    }
 
     private void SetupOwnedDataset(IReadOnlyDictionary<TimeResolution, int>? pointCounts = null)
     {

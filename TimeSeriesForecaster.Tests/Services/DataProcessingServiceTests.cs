@@ -23,6 +23,7 @@ public class DataProcessingServiceTests : IDisposable
     private readonly INotificationService _notificationService = Substitute.For<INotificationService>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IWebHostEnvironment _env = Substitute.For<IWebHostEnvironment>();
+    private readonly ICacheService _cacheService = Substitute.For<ICacheService>();
 
     private readonly string _tempDir;
     private readonly Dataset _dataset;
@@ -511,11 +512,48 @@ public class DataProcessingServiceTests : IDisposable
         Assert.False(string.IsNullOrWhiteSpace(_dataset.ErrorMessage));
     }
 
+    // ---------- Cache geçersiz kılma ----------
+
+    [Fact]
+    public async Task ProcessDatasetAsync_ValidCsv_InvalidatesDatasetCacheAtStartAndEnd()
+    {
+        // Başta: eski verinin cache'i işleme sırasında sunulmasın. Sonda: işleme sırasında yarım veriden oluşan cache temizlensin.
+        WriteCsv("""
+            Date,Value
+            2024-01-01,10
+            """);
+
+        await CreateSut().ProcessDatasetAsync(DatasetId);
+
+        AssertDatasetCacheRemoved(times: 2);
+    }
+
+    [Fact]
+    public async Task ProcessDatasetAsync_ProcessingFails_StillInvalidatesDatasetCacheAtEnd()
+    {
+        // CSV yazılmadı → dosya hatası. Hata yolunda da sondaki temizlik çalışmalı.
+        await CreateSut().ProcessDatasetAsync(DatasetId);
+
+        AssertDatasetCacheRemoved(times: 2);
+    }
+
     // ---------- Yardımcılar ----------
+
+    // Toplu RemoveAsync'e verilen anahtar listeleri; her çağrının dataset'in tüm anahtarlarını içermesi beklenir.
+    private void AssertDatasetCacheRemoved(int times)
+    {
+        var removedKeySets = _cacheService.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == nameof(ICacheService.RemoveAsync) && c.GetArguments()[0] is IEnumerable<string>)
+            .Select(c => ((IEnumerable<string>)c.GetArguments()[0]!).ToList())
+            .ToList();
+
+        Assert.Equal(times, removedKeySets.Count);
+        Assert.All(removedKeySets, keys => Assert.Equal(CacheKeys.AllForDataset(DatasetId), keys));
+    }
 
     private DataProcessingService CreateSut(int chunkSize = DataProcessingService.DefaultChunkSize)
         => new(_dataPointRepository, _datasetRepository, _projectRepository, _notificationService, _unitOfWork, _env,
-            NullLogger<DataProcessingService>.Instance, chunkSize);
+            NullLogger<DataProcessingService>.Instance, _cacheService, chunkSize);
 
     private void WriteCsv(string content)
         => File.WriteAllText(Path.Combine(_tempDir, CsvFileName), content, new UTF8Encoding(false));

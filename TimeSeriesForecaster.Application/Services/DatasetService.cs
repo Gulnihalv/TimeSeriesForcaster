@@ -21,8 +21,9 @@ public class DatasetService : IDatasetService
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly IMapper _mapper;
     private readonly IWebHostEnvironment _env;
+    private readonly ICacheService _cacheService;
 
-    public DatasetService(IUnitOfWork unitOfWork, IDatasetRepository datasetRepository, IProjectRepository projectRepository, IDataPointRepository dataPointRepository, IBackgroundJobClient backgroundJobClient, IMapper mapper, IWebHostEnvironment env)
+    public DatasetService(IUnitOfWork unitOfWork, IDatasetRepository datasetRepository, IProjectRepository projectRepository, IDataPointRepository dataPointRepository, IBackgroundJobClient backgroundJobClient, IMapper mapper, IWebHostEnvironment env, ICacheService cacheService)
     {
         _unitOfWork = unitOfWork;
         _datasetRepository = datasetRepository;
@@ -31,6 +32,7 @@ public class DatasetService : IDatasetService
         _backgroundJobClient = backgroundJobClient;
         _mapper = mapper;
         _env = env;
+        _cacheService = cacheService;
     }
     public async Task<Result<string>> SaveFileAsync(IFormFile file, string subDirectory)
     {
@@ -211,6 +213,9 @@ public class DatasetService : IDatasetService
         _datasetRepository.UpdateDataset(dataset);
         await _unitOfWork.SaveChangesAsync();
 
+        // Dataset silindi; datapoints, istatistik ve çözünürlük sayıları artık geçersiz.
+        await _cacheService.RemoveAsync(CacheKeys.AllForDataset(datasetId));
+
         return Result.Success(true);
     }
 
@@ -226,10 +231,27 @@ public class DatasetService : IDatasetService
             return Result.Failure<IEnumerable<DataPointDto>?>(ResultErrorType.BadRequest, ErrorMessages.DatasetNotProcessed);
         }
 
+        // Yetki ve işlenme kontrolleri yukarıda her istekte çalışır; yalnızca DB sorgusu cache'lenir.
+        // Listede olmayan maxPoints değerleri cache'lenmez (gerekçe CacheKeys.CacheableDataPointLimits'te).
+        if (maxPoints is not { } limit || !CacheKeys.CacheableDataPointLimits.Contains(limit))
+        {
+            return Result.Success<IEnumerable<DataPointDto>?>(await FetchDataPointsAsync(datasetId, maxPoints));
+        }
+
+        var dataPointDtos = await _cacheService.GetOrCreateAsync(
+            CacheKeys.DatasetDataPoints(datasetId, limit),
+            async _ => await FetchDataPointsAsync(datasetId, limit),
+            TimeSpan.FromHours(1));
+
+        return Result.Success<IEnumerable<DataPointDto>?>(dataPointDtos);
+    }
+
+    // Entity yerine DTO cache'leniyor: entity'nin navigation property'leri serileştirmede sorun çıkarır.
+    private async Task<List<DataPointDto>> FetchDataPointsAsync(int datasetId, int? maxPoints)
+    {
         var dataPoints = await _dataPointRepository.GetDataPointsAsync(datasetId: datasetId, maxPoints: maxPoints);
         var ordered = dataPoints.OrderBy(dp => dp.Timestamp);
-
-        return Result.Success<IEnumerable<DataPointDto>?>(_mapper.Map<IEnumerable<DataPointDto>>(ordered));
+        return _mapper.Map<List<DataPointDto>>(ordered);
     }
 
     public async Task<Result<DatasetStatisticsDto?>> GetDatasetStatisticsAsync(int datasetId, int userId)
@@ -244,8 +266,16 @@ public class DatasetService : IDatasetService
             return Result.Failure<DatasetStatisticsDto?>(ResultErrorType.BadRequest, ErrorMessages.DatasetNotProcessed);
         }
 
-        var statistics = await _dataPointRepository.GetStatisticsAsync(datasetId: datasetId);
-        var statisticsDto = _mapper.Map<DatasetStatisticsDto>(statistics);
+        // Tam tablo taraması yapan aggregate; yetki ve işlenme kontrolleri cache dışında kalır.
+        var statisticsDto = await _cacheService.GetOrCreateAsync(
+            CacheKeys.DatasetStatistics(datasetId),
+            async ct =>
+            {
+                var statistics = await _dataPointRepository.GetStatisticsAsync(datasetId: datasetId, ct);
+                return _mapper.Map<DatasetStatisticsDto>(statistics);
+            },
+            TimeSpan.FromMinutes(15));
+
         return Result.Success<DatasetStatisticsDto?>(statisticsDto);
     }
 }

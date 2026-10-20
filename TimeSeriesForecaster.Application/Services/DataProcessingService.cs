@@ -19,6 +19,7 @@ public class DataProcessingService : IDataProcessingService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<DataProcessingService> _logger;
+    private readonly ICacheService _cacheService;
     private readonly int _chunkSize;
 
     public const int DefaultChunkSize = 10000;
@@ -27,7 +28,7 @@ public class DataProcessingService : IDataProcessingService
     private const NumberStyles ValueStyles = NumberStyles.Float;
 
 
-    public DataProcessingService(IDataPointRepository dataPointRepository, IDatasetRepository datasetRepository, IProjectRepository projectRepository, INotificationService notificationService, IUnitOfWork unitOfWork, IWebHostEnvironment env, ILogger<DataProcessingService> logger, int chunkSize = DefaultChunkSize)
+    public DataProcessingService(IDataPointRepository dataPointRepository, IDatasetRepository datasetRepository, IProjectRepository projectRepository, INotificationService notificationService, IUnitOfWork unitOfWork, IWebHostEnvironment env, ILogger<DataProcessingService> logger, ICacheService cacheService, int chunkSize = DefaultChunkSize)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(chunkSize, 1);
         _chunkSize = chunkSize;
@@ -38,6 +39,7 @@ public class DataProcessingService : IDataProcessingService
         _unitOfWork = unitOfWork;
         _env = env;
         _logger = logger;
+        _cacheService = cacheService;
     }
 
     private record ImportResult(int ImportedRows, int SkippedRows, DateTime? MinDate, DateTime? MaxDate)
@@ -163,6 +165,9 @@ public class DataProcessingService : IDataProcessingService
 
             var filePath = Path.Combine(_env.ContentRootPath, dataset.FilePath!);
 
+            // Başta: eski verinin cache'lenmiş hali işleme sırasında sunulmasın.
+            await _cacheService.RemoveAsync(CacheKeys.AllForDataset(datasetId), CancellationToken.None);
+
             try
             {
                 dataset.Status = ProcessingStatus.Processing;
@@ -252,6 +257,10 @@ public class DataProcessingService : IDataProcessingService
             }
             finally
             {
+                // Sonda (başarı, hata veya iptal): işleme sırasında yarım veriden oluşmuş olabilecek cache'i temizler.
+                // ICacheService.RemoveAsync Redis hatalarında fırlatmadığı için finally içinde asıl sonucu ezmez.
+                await _cacheService.RemoveAsync(CacheKeys.AllForDataset(datasetId), CancellationToken.None);
+
                 sw.Stop();
                 _logger.LogInformation("Dataset processing completed in {ElapsedMilliseconds} ms.", sw.ElapsedMilliseconds);
             }

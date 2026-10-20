@@ -20,8 +20,9 @@ public class ModelService : IModelService
     private readonly IMapper _mapper;
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ICacheService _cacheService;
 
-    public ModelService(IModelRepository modelRepository, IDatasetRepository datasetRepository, IDataPointRepository dataPointRepository, IUnitOfWork unitOfWork, IMapper mapper, IBackgroundJobClient backgroundJobClient, IHttpClientFactory httpClientFactory)
+    public ModelService(IModelRepository modelRepository, IDatasetRepository datasetRepository, IDataPointRepository dataPointRepository, IUnitOfWork unitOfWork, IMapper mapper, IBackgroundJobClient backgroundJobClient, IHttpClientFactory httpClientFactory, ICacheService cacheService)
     {
         _modelRepository = modelRepository;
         _datasetRepository = datasetRepository;
@@ -30,6 +31,7 @@ public class ModelService : IModelService
         _mapper = mapper;
         _backgroundJobClient = backgroundJobClient;
         _httpClientFactory = httpClientFactory;
+        _cacheService = cacheService;
     }
 
     public async Task<Result<IEnumerable<ModelDto>>> GetAllModelsForDatasetAsync(int datasetId, int userId)
@@ -150,8 +152,19 @@ public class ModelService : IModelService
             return dataset.RecordCount;
         }
 
-        var counts = await _dataPointRepository.GetResolutionPointCountsAsync(dataset.Id, cancellationToken);
+        var counts = await GetResolutionPointCountsCachedAsync(dataset.Id, cancellationToken);
         return counts.GetValueOrDefault(resolution);
+    }
+
+    // 6 ayrı COUNT(DISTINCT ...) sorgusu; hem eğitim formu açılışında hem eğitim validasyonunda çağrılıyor.
+    // Dataset işlendikten sonra sonuç değişmez; yeniden işleme ve silmede DataProcessingService/DatasetService temizler.
+    private async Task<Dictionary<TimeResolution, int>> GetResolutionPointCountsCachedAsync(int datasetId, CancellationToken cancellationToken)
+    {
+        return await _cacheService.GetOrCreateAsync(
+            CacheKeys.DatasetResolutionCounts(datasetId),
+            async ct => new Dictionary<TimeResolution, int>(await _dataPointRepository.GetResolutionPointCountsAsync(datasetId, ct)),
+            TimeSpan.FromHours(1),
+            cancellationToken);
     }
 
     private static bool IsWithinAllowedRange(int points)
@@ -219,6 +232,9 @@ public class ModelService : IModelService
         _modelRepository.UpdateModel(model);
         await _unitOfWork.SaveChangesAsync();
 
+        // Model silindi, bileşenleri artık geçersiz.
+        await _cacheService.RemoveAsync(CacheKeys.ModelComponents(modelId));
+
         return Result.Success();
     }
 
@@ -241,6 +257,29 @@ public class ModelService : IModelService
             return Result.Failure<ModelComponentsDto?>(ResultErrorType.ValidationError, "Bileşenleri görebilmek için modelin eğitiminin tamamlanmış olması gerekir.");
         }
 
+        // Yetki ve durum kontrolleri yukarıda her istekte çalışır; yalnızca pahalı ML çağrısı cache'lenir.
+        try
+        {
+            // ML servisi her çağrıda Prophet.predict() çalıştırıyor. Eğitilmiş model dosyası değişmediği için sonuç sabit.
+            var components = await _cacheService.GetOrCreateAsync(
+                CacheKeys.ModelComponents(modelId),
+                async ct => await FetchComponentsFromMlServiceAsync(model, ct),
+                TimeSpan.FromMinutes(30),
+                cancellationToken);
+
+            return Result.Success(components);
+        }
+        catch (MlServiceException ex)
+        {
+            // Factory exception fırlattığı için hata cache'lenmedi; bir sonraki istek tekrar deneyecek.
+            return Result.Failure<ModelComponentsDto?>(ResultErrorType.Unexpected, ex.Message);
+        }
+    }
+
+    // Başarısızlıkta exception fırlatıyor (Result değil): HybridCache'in factory'si hata verirse hiçbir şey
+    // cache'lemez. Result dönseydik, "ML servisi kapalı" sonucunu 30 dakika cache'lerdik.
+    private async Task<ModelComponentsDto?> FetchComponentsFromMlServiceAsync(Model model, CancellationToken cancellationToken)
+    {
         var requestBody = new { model_path = model.ModelFilePath };
         var httpClient = _httpClientFactory.CreateClient(MlServiceClients.MlServiceStandard);
         var stringContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
@@ -253,22 +292,23 @@ public class ModelService : IModelService
         catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             // ML servisine hiç ulaşılamadı (ayakta değil, ağ sorunu, timeout vs.)
-            return Result.Failure<ModelComponentsDto?>(ResultErrorType.Unexpected, $"ML servisine ulaşılamadı: {ex.Message}");
+            throw new MlServiceException($"ML servisine ulaşılamadı: {ex.Message}");
         }
 
         if (!httpResponse.IsSuccessStatusCode)
         {
-            return Result.Failure<ModelComponentsDto?>(ResultErrorType.Unexpected, "Model bileşenleri alınırken Python API'ında bir hata oluştu.");
+            throw new MlServiceException("Model bileşenleri alınırken Python API'ında bir hata oluştu.");
         }
 
         var responseBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
-        var componentsResult = JsonSerializer.Deserialize<ModelComponentsDto>(responseBody, new JsonSerializerOptions
+        var components = JsonSerializer.Deserialize<ModelComponentsDto>(responseBody, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
         });
 
-        return Result.Success<ModelComponentsDto?>(componentsResult);
+        // Yanıt gövdesi "null" ise null dönmek yerine fırlatıyoruz; aksi halde boş sonuç 30 dakika cache'lenirdi.
+        return components ?? throw new MlServiceException("Model bileşenleri Python API'ından boş döndü.");
     }
 
     public async Task<Result<List<ResolutionOptionDto>>> GetResolutionOptionsAsync(int datasetId, int userId, CancellationToken cancellationToken = default)
@@ -279,7 +319,7 @@ public class ModelService : IModelService
             return Result.Failure<List<ResolutionOptionDto>>(ResultErrorType.Forbidden, ErrorMessages.UnauthorizedAccess);
         }
 
-        var resolutionPointCounts = await _dataPointRepository.GetResolutionPointCountsAsync(datasetId: datasetId, cancellationToken);
+        var resolutionPointCounts = await GetResolutionPointCountsCachedAsync(datasetId, cancellationToken);
 
         var resolutionOptions = new List<ResolutionOptionDto>();
         foreach (var resolution in Enum.GetValues<TimeResolution>())
