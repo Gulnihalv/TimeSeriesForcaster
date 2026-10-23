@@ -20,7 +20,7 @@ import {
 import type { Dataset } from '../../datasets/api/datasetApi';
 import ForecastChart from './ForecastChart';
 import ModelComponentsPanel from './ModelComponentsPanel';
-import { useToast } from '../../../components/Toast/ToastContext';
+import { useToast } from '../../../components/Toast/useToast';
 import { TOAST_MESSAGES } from '../../../constants/messages';
 import styles from './ModelDetailPanel.module.css';
 

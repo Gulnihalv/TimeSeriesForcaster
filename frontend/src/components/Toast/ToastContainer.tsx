@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { LuCheck, LuX, LuInfo } from 'react-icons/lu';
-import type { ToastItem } from './ToastContext';
+import type { ToastItem } from './toastState';
 import styles from './Toast.module.css';
 
 interface ToastContainerProps {

@@ -8,7 +8,7 @@ import styles from './ProjectList.module.css';
 import { useNavigate } from 'react-router-dom';
 import { useApiData } from '../../../hooks/useApiData';
 import { getErrorMessage } from '../../../api/errorUtils';
-import { useToast } from '../../../components/Toast/ToastContext';
+import { useToast } from '../../../components/Toast/useToast';
 import { TOAST_MESSAGES } from '../../../constants/messages';
 import { LuFolderKanban, LuTrash2 } from 'react-icons/lu';
 

@@ -8,7 +8,7 @@ import ConfirmDialog from '../../../components/ConfirmDialog/ConfirmDialog';
 import { ProcessingBadge } from '../../../components/StatusBadge/StatusBadge';
 import { useApiData } from '../../../hooks/useApiData';
 import { getErrorMessage } from '../../../api/errorUtils';
-import { useToast } from '../../../components/Toast/ToastContext';
+import { useToast } from '../../../components/Toast/useToast';
 import { TOAST_MESSAGES } from '../../../constants/messages';
 import { LuDatabase, LuTrash2 } from 'react-icons/lu';
 import styles from './DatasetList.module.css';

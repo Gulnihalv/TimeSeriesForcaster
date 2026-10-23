@@ -1,7 +1,7 @@
 import { useCallback, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApiData } from '../../../hooks/useApiData';
-import { useToast } from '../../../components/Toast/ToastContext';
+import { useToast } from '../../../components/Toast/useToast';
 import EmptyState from '../../../components/EmptyState/EmptyState';
 import { LuActivity } from 'react-icons/lu';
 import {
