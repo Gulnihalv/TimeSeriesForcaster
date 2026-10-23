@@ -11,7 +11,7 @@ import {
   type Notification,
 } from '../../features/notifications/api/notificationApi';
 import { getModelById } from '../../features/models/api/modelApi';
-import { useToast } from '../Toast/ToastContext';
+import { useToast } from '../Toast/useToast';
 import styles from './NotificationBell.module.css';
 
 const TYPE_LABELS: Record<NotificationType, string> = {

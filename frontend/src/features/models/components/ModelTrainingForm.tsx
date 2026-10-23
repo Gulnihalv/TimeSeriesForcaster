@@ -13,7 +13,7 @@ import {
   type ResolutionOption,
 } from '../api/modelApi';
 import { useApiData } from '../../../hooks/useApiData';
-import { useToast } from '../../../components/Toast/ToastContext';
+import { useToast } from '../../../components/Toast/useToast';
 import { TOAST_MESSAGES } from '../../../constants/messages';
 import styles from './ModelTrainingForm.module.css';
 

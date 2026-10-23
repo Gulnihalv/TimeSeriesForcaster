@@ -1,19 +1,6 @@
-import { createContext, useCallback, useContext, useRef, useState, type FC, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type FC, type ReactNode } from 'react';
 import ToastContainer from './ToastContainer';
-
-export type ToastType = 'success' | 'error' | 'info';
-
-export interface ToastItem {
-  id: number;
-  message: string;
-  type: ToastType;
-}
-
-interface ToastContextValue {
-  showToast: (message: string, type?: ToastType) => void;
-}
-
-const ToastContext = createContext<ToastContextValue | undefined>(undefined);
+import { ToastContext, type ToastItem, type ToastType } from './toastState';
 
 const TOAST_DURATION_MS = 3500;
 
@@ -39,12 +26,4 @@ export const ToastProvider: FC<{ children: ReactNode }> = ({ children }) => {
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </ToastContext.Provider>
   );
-};
-
-export const useToast = (): ToastContextValue => {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast, ToastProvider içinde kullanılmalı.');
-  }
-  return context;
 };

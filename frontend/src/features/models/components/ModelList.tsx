@@ -5,7 +5,7 @@ import { StatusBadge } from '../../../components/StatusBadge/StatusBadge';
 import { useApiData } from '../../../hooks/useApiData';
 import { getModelsForDataset, deleteModel, ModelStatus, type Model } from '../api/modelApi';
 import { getErrorMessage } from '../../../api/errorUtils';
-import { useToast } from '../../../components/Toast/ToastContext';
+import { useToast } from '../../../components/Toast/useToast';
 import { TOAST_MESSAGES } from '../../../constants/messages';
 import { LuTrash2 } from 'react-icons/lu';
 import styles from './ModelList.module.css';
